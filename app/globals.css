@@ -1,0 +1,18 @@
+/* ─── Tailwind base layers ─── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Global resets ─── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-slate-800 font-sans antialiased;
+}
+
+/* ─── Focus ring utility ─── */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}

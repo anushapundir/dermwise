@@ -1,0 +1,267 @@
+[
+  {
+    "class": "akiec",
+    "category": "overview",
+    "text": "Actinic keratosis (AK) is a precancerous skin lesion caused by cumulative ultraviolet radiation exposure. It appears on sun-exposed areas such as the face, scalp, ears, forearms, and dorsal hands. Bowen's disease (squamous cell carcinoma in situ) is a closely related condition where atypical keratinocytes involve the full thickness of the epidermis but have not invaded the dermis."
+  },
+  {
+    "class": "akiec",
+    "category": "appearance",
+    "text": "Actinic keratoses typically present as rough, scaly, erythematous patches or papules measuring 2-6 mm. They may be skin-colored, pink, or red, and are often easier felt than seen due to their sandpaper-like texture. Bowen's disease presents as a well-defined, erythematous, scaly plaque that grows slowly. Pigmented variants can mimic melanoma."
+  },
+  {
+    "class": "akiec",
+    "category": "risk_factors",
+    "text": "Major risk factors for actinic keratosis include fair skin (Fitzpatrick types I-II), chronic sun exposure, age over 50, male sex, immunosuppression (organ transplant recipients have 250x increased risk), and history of sunburns. Outdoor occupations and living at low latitudes increase risk significantly."
+  },
+  {
+    "class": "akiec",
+    "category": "differential_diagnosis",
+    "text": "Differential diagnosis of actinic keratosis includes squamous cell carcinoma (invasive), seborrheic keratosis, superficial basal cell carcinoma, psoriasis, and eczema. Dermoscopy showing a strawberry pattern (pseudonetwork with white-to-yellow structureless areas and dotted/glomerular vessels) supports the diagnosis. Biopsy is needed if SCC invasion is suspected."
+  },
+  {
+    "class": "akiec",
+    "category": "treatment",
+    "text": "Treatment options for actinic keratosis include cryotherapy with liquid nitrogen (most common, cure rate 75-98%), topical 5-fluorouracil cream (field therapy), topical imiquimod 5% cream (immune modulator), photodynamic therapy (PDT), and surgical excision. Bowen's disease is typically treated with excision, PDT, or topical 5-FU. Regular follow-up is essential as AK has a 5-10% risk of progression to SCC."
+  },
+  {
+    "class": "akiec",
+    "category": "prognosis",
+    "text": "Individual actinic keratoses have a low annual risk of progression to squamous cell carcinoma (estimated 0.025-16% per lesion per year). However, patients often have multiple AKs and the field cancerization concept means the surrounding skin is also at risk. Early treatment has excellent outcomes. Bowen's disease has a 3-5% risk of progression to invasive SCC if untreated."
+  },
+  {
+    "class": "akiec",
+    "category": "when_to_refer",
+    "text": "Refer to dermatology if actinic keratoses are numerous (>10), recurrent after treatment, hypertrophic or indurated (suspicion of SCC), or in immunosuppressed patients. Urgent referral is needed if there are signs of invasive SCC: rapid growth, ulceration, bleeding, pain, or induration beyond the visible margins."
+  },
+  {
+    "class": "bcc",
+    "category": "overview",
+    "text": "Basal cell carcinoma (BCC) is the most common human cancer, arising from basal cells of the epidermis. It accounts for approximately 80% of non-melanoma skin cancers. BCC is locally invasive but very rarely metastasizes (<0.1%). Subtypes include nodular (most common, 60-80%), superficial (15-25%), morphoeic/infiltrative (5-10%), and pigmented variants."
+  },
+  {
+    "class": "bcc",
+    "category": "appearance",
+    "text": "Nodular BCC presents as a pearly, translucent papule or nodule with telangiectasia (visible blood vessels) and a rolled border. It may ulcerate centrally (rodent ulcer). Superficial BCC appears as a thin, erythematous, scaly plaque, often on the trunk. Morphoeic BCC presents as a waxy, scar-like plaque with ill-defined borders. Pigmented BCC contains melanin and can mimic melanoma."
+  },
+  {
+    "class": "bcc",
+    "category": "risk_factors",
+    "text": "Risk factors for BCC include cumulative and intermittent intense UV exposure, fair skin, age over 50, prior radiation therapy, chronic arsenic exposure, immunosuppression, genetic conditions (basal cell nevus syndrome/Gorlin syndrome), and prior history of BCC (36-50% risk of developing another within 5 years)."
+  },
+  {
+    "class": "bcc",
+    "category": "differential_diagnosis",
+    "text": "Differential diagnosis includes squamous cell carcinoma, amelanotic melanoma, sebaceous hyperplasia, molluscum contagiosum, and dermal nevus. Dermoscopy of nodular BCC shows arborizing (tree-like) vessels, blue-gray ovoid nests, leaf-like structures, and spoke-wheel areas. Superficial BCC shows short fine telangiectasia, shiny white-red structureless areas, and small erosions."
+  },
+  {
+    "class": "bcc",
+    "category": "treatment",
+    "text": "Treatment depends on subtype, size, and location. Options include surgical excision (standard treatment, 95%+ cure rate), Mohs micrographic surgery (for high-risk locations like face, recurrent tumors \u2014 99% cure rate), curettage and electrodesiccation, cryotherapy (superficial BCC only), topical imiquimod or 5-FU (superficial BCC), PDT, and hedgehog pathway inhibitors (vismodegib) for advanced/inoperable cases."
+  },
+  {
+    "class": "bcc",
+    "category": "prognosis",
+    "text": "BCC has an excellent prognosis when treated early. Five-year cure rates exceed 95% with appropriate surgical management. However, incomplete excision leads to recurrence in 33-39% of cases. Patients with one BCC have a significantly increased risk of subsequent BCCs and should have regular skin surveillance every 6-12 months."
+  },
+  {
+    "class": "bcc",
+    "category": "when_to_refer",
+    "text": "Refer to dermatology or surgical oncology for any suspected BCC. Urgent referral for morphoeic/infiltrative subtypes, lesions >2cm, recurrent BCC, BCC in high-risk locations (periorbital, nasolabial fold, ear), and BCC in immunosuppressed patients. Mohs surgery referral for facial BCC in cosmetically sensitive areas."
+  },
+  {
+    "class": "bkl",
+    "category": "overview",
+    "text": "Benign keratoses encompass seborrheic keratosis, solar lentigo, and lichen planus-like keratosis. Seborrheic keratosis (SK) is the most common benign skin tumor in adults, affecting nearly 100% of individuals over age 50. These are epidermal growths with no malignant potential. Solar lentigines (liver spots) are benign pigmented macules from chronic sun exposure."
+  },
+  {
+    "class": "bkl",
+    "category": "appearance",
+    "text": "Seborrheic keratoses appear as well-demarcated, waxy, stuck-on papules and plaques ranging from skin-colored to dark brown or black. They have a verrucous surface with horn cysts visible on dermoscopy. Solar lentigines are flat, uniformly tan-to-brown macules on sun-exposed skin. Lichen planus-like keratosis presents as a solitary, flat-to-slightly raised lesion that may be pink, red-brown, or gray, often representing a regressing SK."
+  },
+  {
+    "class": "bkl",
+    "category": "risk_factors",
+    "text": "Seborrheic keratoses increase with age and may have a genetic predisposition (autosomal dominant pattern reported). Sun exposure is the primary risk factor for solar lentigines. Neither condition is caused by viral infection. The sign of Leser-Tr\u00e9lat (sudden eruption of multiple SKs) may rarely indicate internal malignancy, though this association is debated."
+  },
+  {
+    "class": "bkl",
+    "category": "differential_diagnosis",
+    "text": "The main diagnostic challenge is distinguishing dark seborrheic keratoses from melanoma. Dermoscopy showing milia-like cysts, comedo-like openings, gyri and sulci pattern (brain-like appearance), and sharp demarcation confirms SK. Solar lentigo must be distinguished from lentigo maligna. If any doubt exists, biopsy is recommended to rule out melanoma."
+  },
+  {
+    "class": "bkl",
+    "category": "treatment",
+    "text": "Benign keratoses generally require no treatment. If removal is desired for cosmetic reasons, irritation, or diagnostic uncertainty, options include cryotherapy (most common), shave excision, curettage, electrodesiccation, and laser therapy. Biopsy is recommended for any lesion with atypical features. Treatment of solar lentigines includes topical retinoids, chemical peels, and intense pulsed light."
+  },
+  {
+    "class": "bkl",
+    "category": "prognosis",
+    "text": "Benign keratoses have an excellent prognosis with no risk of malignant transformation. They are purely cosmetic concerns. Seborrheic keratoses may increase in number over time. Solar lentigines indicate chronic sun damage and patients should be monitored for other UV-related skin changes including actinic keratoses and skin cancer."
+  },
+  {
+    "class": "bkl",
+    "category": "when_to_refer",
+    "text": "Referral to dermatology is recommended when a benign keratosis cannot be confidently distinguished from melanoma or other skin cancers, especially for darkly pigmented lesions, lesions with irregular borders, or lesions that change rapidly. The Leser-Tr\u00e9lat sign warrants investigation for internal malignancy."
+  },
+  {
+    "class": "df",
+    "category": "overview",
+    "text": "Dermatofibroma (benign fibrous histiocytoma) is a common benign skin lesion composed of fibroblasts, histiocytes, and collagen. It most commonly occurs on the lower extremities in young to middle-aged adults, with a female predominance. The cause is unknown, but many are thought to arise as a reactive process following minor trauma such as insect bites or folliculitis."
+  },
+  {
+    "class": "df",
+    "category": "appearance",
+    "text": "Dermatofibromas present as firm, round-to-oval papules or nodules measuring 3-10 mm. They may be skin-colored, pink, red-brown, or dark brown. A characteristic feature is the dimple sign (Fitzpatrick sign): lateral compression causes the lesion to dimple or pucker inward. On dermoscopy, a central white scar-like patch surrounded by a delicate pigment network is the most characteristic pattern."
+  },
+  {
+    "class": "df",
+    "category": "risk_factors",
+    "text": "Dermatofibromas occur sporadically without clear risk factors. They are more common in women. Multiple dermatofibromas (>15) may be associated with systemic lupus erythematosus, HIV infection, or immunosuppressive therapy. Prior insect bites or minor trauma to the site have been reported as triggers."
+  },
+  {
+    "class": "df",
+    "category": "differential_diagnosis",
+    "text": "Differential diagnosis includes dermatofibrosarcoma protuberans (DFSP, a malignant tumor), melanoma, Blue nevus, keloid scar, and BCC. DFSP is larger, grows more rapidly, and does not dimple on compression. Dermoscopy helps distinguish dermatofibroma from melanoma: DF shows a central white area with peripheral pigment network, while melanoma shows atypical network, regression structures, or blue-white veil."
+  },
+  {
+    "class": "df",
+    "category": "treatment",
+    "text": "Dermatofibromas are benign and usually require no treatment. If bothersome, surgical excision is the definitive treatment but leaves a scar often larger than the original lesion. Cryotherapy and shave excision result in high recurrence rates. Patients should be reassured of the benign nature. Excision should be performed if the diagnosis is uncertain or if the lesion grows rapidly."
+  },
+  {
+    "class": "df",
+    "category": "prognosis",
+    "text": "Dermatofibromas have an excellent prognosis. They are completely benign, do not undergo malignant transformation, and may spontaneously regress over years (though this is uncommon). Recurrence after complete excision is rare (<2%). Most remain stable in size throughout life."
+  },
+  {
+    "class": "df",
+    "category": "when_to_refer",
+    "text": "Refer to dermatology if the diagnosis is uncertain, the lesion is rapidly growing (concern for DFSP), larger than 1 cm, painful, or if the patient has multiple dermatofibromas (screen for underlying conditions). Biopsy is indicated for atypical presentations."
+  },
+  {
+    "class": "mel",
+    "category": "overview",
+    "text": "Melanoma is a malignant neoplasm arising from melanocytes. It is the deadliest form of skin cancer, responsible for 75% of skin cancer deaths despite accounting for only 5% of skin cancer cases. Early detection is critical as 5-year survival drops from 99% (localized) to 30% (distant metastasis). Major subtypes: superficial spreading (70%), nodular (15-30%), lentigo maligna (5-15%), and acral lentiginous (5%)."
+  },
+  {
+    "class": "mel",
+    "category": "appearance",
+    "text": "The ABCDE criteria for melanoma recognition: Asymmetry (one half doesn't match the other), Border irregularity (ragged, notched, or blurred edges), Color variation (multiple shades of brown, black, red, white, or blue within the lesion), Diameter >6mm (though early melanomas may be smaller), and Evolution (changing in size, shape, or color). The ugly duckling sign (a lesion that looks different from all other moles) is also important."
+  },
+  {
+    "class": "mel",
+    "category": "risk_factors",
+    "text": "Major risk factors for melanoma include fair skin (Fitzpatrick I-II), history of severe sunburns (especially in childhood), large number of moles (>50 common nevi or >5 atypical nevi), family history of melanoma (8-12x increased risk with first-degree relative), personal history of melanoma, CDKN2A/CDK4 gene mutations, immunosuppression, and xeroderma pigmentosum. Intermittent intense UV exposure carries higher risk than chronic exposure."
+  },
+  {
+    "class": "mel",
+    "category": "differential_diagnosis",
+    "text": "Differential diagnosis includes dysplastic (atypical) nevus, seborrheic keratosis, pigmented BCC, blue nevus, and traumatized nevus. Dermoscopy features suggestive of melanoma include atypical pigment network, irregular dots/globules, blue-white veil, regression structures (peppering), irregular streaks/pseudopods, atypical vascular structures, and asymmetry of structures. Any lesion with 3 or more dermoscopic colors warrants biopsy."
+  },
+  {
+    "class": "mel",
+    "category": "treatment",
+    "text": "Primary treatment for melanoma is wide local excision with margins depending on Breslow thickness: in situ (5mm), \u22641mm (1cm), 1.01-2mm (1-2cm), >2mm (2cm). Sentinel lymph node biopsy is recommended for tumors >0.8mm or <0.8mm with ulceration. Adjuvant therapy for advanced stages includes immune checkpoint inhibitors (pembrolizumab, nivolumab), targeted therapy for BRAF-mutant tumors (dabrafenib/trametinib), and radiation therapy."
+  },
+  {
+    "class": "mel",
+    "category": "prognosis",
+    "text": "Melanoma prognosis is strongly determined by stage at diagnosis. Five-year survival rates: Stage IA 97%, Stage IB 92%, Stage IIA 81%, Stage IIB 70%, Stage IIC 53%, Stage IIIA 78%, Stage IIIB 59%, Stage IIIC 40%, Stage IV 15-20%. Key prognostic factors: Breslow thickness, ulceration status, mitotic rate, lymph node involvement, and presence of distant metastasis. Early thin melanomas (<1mm) have excellent cure rates."
+  },
+  {
+    "class": "mel",
+    "category": "when_to_refer",
+    "text": "URGENT referral (within 2 weeks) to dermatology for any pigmented lesion suspicious for melanoma. The 2-week-wait pathway should be used for: changing moles, new pigmented lesions with irregular features, lesions meeting 3+ ABCDE criteria, or dermoscopically suspicious lesions. Do NOT wait and watch \u2014 early excision is critical. All excised melanomas should be discussed in a multidisciplinary team meeting."
+  },
+  {
+    "class": "nv",
+    "category": "overview",
+    "text": "Melanocytic nevi (moles) are benign proliferations of melanocytes and the most common skin lesions in humans. The average adult has 20-40 nevi. They typically appear in childhood and adolescence, reach peak numbers in the third decade, and gradually involute with age. Types include junctional nevi (flat, at dermal-epidermal junction), compound nevi (slightly raised), and intradermal nevi (dome-shaped, flesh colored)."
+  },
+  {
+    "class": "nv",
+    "category": "appearance",
+    "text": "Common melanocytic nevi are small (<6mm), well-circumscribed, symmetric, uniformly colored (tan to dark brown) macules, papules, or nodules. Junctional nevi are flat and darkly pigmented. Compound nevi are slightly elevated with lighter center. Intradermal nevi are dome-shaped, soft, often skin-colored. Dysplastic (atypical) nevi are larger (>5mm), with irregular borders, variable pigmentation, and may have a fried-egg appearance (dark center, lighter periphery)."
+  },
+  {
+    "class": "nv",
+    "category": "risk_factors",
+    "text": "The number of melanocytic nevi is influenced by genetics (fair skin, family history), sun exposure (especially childhood UV exposure), and immunosuppression. Having >50 common nevi or >5 atypical nevi significantly increases melanoma risk. Congenital melanocytic nevi (present at birth) carry a size-dependent risk of melanoma transformation: giant CMN (>20cm) have a 5-10% lifetime melanoma risk."
+  },
+  {
+    "class": "nv",
+    "category": "differential_diagnosis",
+    "text": "The critical differential diagnosis is between benign nevus and melanoma. Features favoring benign nevus: symmetry, regular borders, uniform color, small size (<6mm), stability over time. Dermoscopy of benign nevi shows regular globular pattern, regular reticular pattern, or homogeneous blue pattern (blue nevus). Any nevus with asymmetric structures, irregular network, regression, or blue-white veil should be biopsied."
+  },
+  {
+    "class": "nv",
+    "category": "treatment",
+    "text": "Most melanocytic nevi require no treatment. Indications for removal include clinical atypia or suspicion of melanoma, cosmetic concerns, and recurrent irritation from clothing or shaving. Excisional biopsy (not shave or punch for suspicious lesions) is the standard approach when melanoma cannot be excluded. Patients with many atypical nevi should have baseline total body photography and regular dermoscopic surveillance."
+  },
+  {
+    "class": "nv",
+    "category": "prognosis",
+    "text": "Melanocytic nevi are benign with an extremely low individual risk of malignant transformation (estimated lifetime risk <0.03% for any single nevus). Most nevi remain stable or involute naturally. Patients with dysplastic nevus syndrome (many atypical nevi plus family history of melanoma) have a significantly elevated lifetime melanoma risk (up to 100% by age 80 in some families) and require lifelong surveillance."
+  },
+  {
+    "class": "nv",
+    "category": "when_to_refer",
+    "text": "Refer to dermatology for any nevus showing changes (new asymmetry, border change, color change, growth, or symptoms), any nevus that looks different from the patient's other nevi (ugly duckling sign), congenital melanocytic nevi >1.5cm, patients with >50 nevi or >5 atypical nevi for baseline mapping, and patients with family history of melanoma for surveillance."
+  },
+  {
+    "class": "vasc",
+    "category": "overview",
+    "text": "Vascular lesions in the HAM10000 dataset include cherry angiomas, angiokeratomas, and pyogenic granulomas. Cherry angiomas (Campbell de Morgan spots) are the most common acquired vascular lesion, found in >75% of adults over 75. Angiokeratomas are ectatic superficial blood vessels with overlying epidermal hyperkeratosis. Pyogenic granulomas are rapidly growing vascular tumors, often following trauma."
+  },
+  {
+    "class": "vasc",
+    "category": "appearance",
+    "text": "Cherry angiomas are small (1-5mm), bright red to purple, dome-shaped papules that blanch incompletely with pressure. Angiokeratomas appear as dark red to purple-black papules with a rough, hyperkeratotic surface \u2014 they may mimic melanoma when thrombosed. Pyogenic granulomas are red, friable, pedunculated nodules that bleed easily and grow rapidly over weeks. Dermoscopy of vascular lesions shows red-blue lacunae (lagoon pattern), characteristic of angiomas."
+  },
+  {
+    "class": "vasc",
+    "category": "risk_factors",
+    "text": "Cherry angiomas increase with age and may be associated with liver disease, pregnancy, and chemical exposure (bromides, cyclosporine). Angiokeratomas may be associated with Fabry disease (angiokeratoma corporis diffusum) when widespread. Pyogenic granulomas are associated with trauma, pregnancy (granuloma gravidarum), and certain medications (retinoids, capecitabine, EGFR inhibitors)."
+  },
+  {
+    "class": "vasc",
+    "category": "differential_diagnosis",
+    "text": "Differential diagnosis of vascular lesions includes amelanotic melanoma (critical to exclude), nodular BCC, Kaposi sarcoma, and bacillary angiomatosis. Thrombosed angiokeratomas can closely mimic melanoma \u2014 dermoscopy showing lacunae helps differentiate. Any lesion with doubt should be biopsied. Kaposi sarcoma (HHV-8 related) should be considered in immunosuppressed patients."
+  },
+  {
+    "class": "vasc",
+    "category": "treatment",
+    "text": "Cherry angiomas need no treatment unless for cosmetic reasons. Treatment options include electrocautery, laser (pulsed dye laser), cryotherapy, and shave excision. Pyogenic granulomas are treated by shave excision with electrocautery of the base (curettage and cautery) to prevent recurrence. Angiokeratomas can be treated with laser, electrocautery, or excision. Fabry-related angiokeratomas require enzyme replacement therapy."
+  },
+  {
+    "class": "vasc",
+    "category": "prognosis",
+    "text": "Vascular lesions have an excellent prognosis. Cherry angiomas are completely benign and only cosmetically relevant. Pyogenic granulomas may recur after incomplete removal (up to 40% recurrence with inadequate treatment) but do not undergo malignant transformation. Solitary angiokeratomas are benign. Multiple angiokeratomas warrant screening for Fabry disease."
+  },
+  {
+    "class": "vasc",
+    "category": "when_to_refer",
+    "text": "Refer to dermatology if a vascular lesion cannot be confidently distinguished from melanoma or other malignancy, for rapidly growing vascular lesions, recurrent pyogenic granulomas, or widespread angiokeratomas (evaluate for Fabry disease). Any dark-colored lesion where vascular origin is uncertain should be biopsied rather than treated destructively."
+  },
+  {
+    "class": "general",
+    "category": "dermoscopy",
+    "text": "Dermoscopy (dermatoscopy) is a non-invasive technique using a handheld magnification device (10x) with polarized or non-polarized light to examine skin lesions. It reveals subsurface structures not visible to the naked eye, improving diagnostic accuracy for melanoma by 20-30% compared to clinical examination alone. Key structures include pigment network, dots/globules, streaks, blue-white veil, regression structures, and vascular patterns."
+  },
+  {
+    "class": "general",
+    "category": "skin_cancer_screening",
+    "text": "Regular skin self-examination and professional skin checks are recommended for high-risk individuals. The ABCDE criteria and ugly duckling sign are tools for patient education. High-risk patients (many nevi, family history, prior skin cancer, immunosuppression) should have annual full-body skin examinations by a dermatologist with dermoscopy. Total body photography aids in detecting changes over time."
+  },
+  {
+    "class": "general",
+    "category": "sun_protection",
+    "text": "Sun protection is the primary prevention strategy for UV-related skin lesions including actinic keratosis, BCC, SCC, melanoma, and solar lentigines. Recommendations include regular use of broad-spectrum SPF 30+ sunscreen, protective clothing, wide-brimmed hats, UV-blocking sunglasses, seeking shade during peak UV hours (10am-4pm), and avoiding indoor tanning. Sunscreen should be reapplied every 2 hours during outdoor activities."
+  },
+  {
+    "class": "general",
+    "category": "biopsy_techniques",
+    "text": "Skin biopsy techniques include excisional biopsy (complete removal with margin \u2014 gold standard for suspected melanoma), punch biopsy (cylindrical sample, good for inflammatory conditions), shave biopsy (superficial removal, NOT appropriate for suspected melanoma as it may transect the lesion), and incisional biopsy (partial sampling of large lesions). For pigmented lesions suspicious for melanoma, excisional biopsy with 1-3mm margins is recommended to allow accurate Breslow thickness measurement."
+  }
+]
