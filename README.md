@@ -1,10 +1,10 @@
-# DermAssist — AI Skin Lesion Analysis
+# DermWise — AI Skin Lesion Analysis
 
 A full-stack medical AI application for skin lesion classification and clinical report generation.
 
 ## 🎯 Overview
 
-DermAssist uses a three-stage AI pipeline to analyze dermoscopic images:
+DermWise uses a three-stage AI pipeline to analyze dermoscopic images:
 
 1. **Classification** — EfficientNet-B0 with Test-Time Augmentation (TTA)
 2. **Knowledge Retrieval** — FAISS + Sentence Transformers for medical context
@@ -56,8 +56,8 @@ User Upload → Next.js (localhost/Vercel)
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/dermassist.git
-cd dermassist
+git clone https://github.com/yourusername/dermwise.git
+cd dermwise
 ```
 
 ### 2. Install Frontend Dependencies

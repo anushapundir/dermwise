@@ -27,7 +27,7 @@ export default function Disclaimer() {
               Important Disclaimer
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              DermAssist is an <strong>educational &amp; research tool</strong>.
+              DermWise is an <strong>educational &amp; research tool</strong>.
               It is <em>not</em> intended as a substitute for professional
               medical advice, diagnosis, or treatment. Always consult a
               qualified dermatologist for clinical decisions.

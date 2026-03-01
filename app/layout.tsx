@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "DermAssist — AI Skin Lesion Analysis",
+  title: "DermWise — AI Skin Lesion Analysis",
   description:
     "AI-powered skin lesion classification and clinical report generation using EfficientNet-B0, FAISS RAG, and QLoRA fine-tuned TinyLlama.",
 };

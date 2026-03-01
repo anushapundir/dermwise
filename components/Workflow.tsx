@@ -1,6 +1,6 @@
 import { Upload, Cpu, FileText } from "lucide-react";
 
-/** Three‑step workflow cards explaining how DermAssist works. */
+/** Three‑step workflow cards explaining how DermWise works. */
 const steps = [
   {
     icon: Upload,

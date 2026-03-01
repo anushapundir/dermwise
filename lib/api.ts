@@ -1,5 +1,5 @@
 /**
- * API client for calling the DermAssist inference backend.
+ * API client for calling the DermWise inference backend.
  *
  * In production, calls go through our Next.js API route (/api/analyze)
  * which proxies to the HuggingFace Space. This keeps the HF URL

@@ -1,5 +1,5 @@
 """
-DermAssist — HuggingFace Spaces Gradio Backend
+DermWise — HuggingFace Spaces Gradio Backend
 ================================================
 Full inference pipeline:
   Image → EfficientNet-B0 (TTA) → FAISS RAG retrieval → TinyLlama QLoRA → Clinical report
@@ -31,7 +31,7 @@ import gradio as gr
 
 # ── Logging ──
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("dermassist")
+logger = logging.getLogger("dermwise")
 
 # ── Lazy-import heavy libraries (saves startup memory) ──
 faiss = None
@@ -437,7 +437,7 @@ demo = gr.Interface(
     fn=analyze,
     inputs=gr.Image(type="pil", label="Dermoscopic Image"),
     outputs=gr.JSON(label="Analysis Result"),
-    title="DermAssist — AI Skin Lesion Analysis",
+    title="DermWise — AI Skin Lesion Analysis",
     description="Upload a dermoscopic image for classification and clinical report generation.",
     flagging_mode="never",
 )
