@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
  * and avoids browser CORS issues.
  *
  * Gradio 5.x (with SSR) uses a two-step API:
- *   1. POST /gradio_api/call/predict → { event_id }
- *   2. GET  /gradio_api/call/predict/{event_id} → SSE stream with result
+ *   1. POST /gradio_api/call/analyze  →  { event_id }
+ *   2. GET  /gradio_api/call/analyze/{event_id}  →  SSE stream with result
  */
 
 const HF_SPACE_URL = process.env.HF_SPACE_URL || "";

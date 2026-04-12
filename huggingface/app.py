@@ -2,20 +2,17 @@
 DermWise — HuggingFace Spaces Gradio Backend
 ================================================
 Full inference pipeline:
-  Image → EfficientNet-B0 (TTA) → FAISS RAG retrieval → TinyLlama QLoRA → Clinical report
+  Image → EfficientNet-B0 (TTA) → FAISS RAG retrieval → HF Inference API → Clinical report
 
 Files expected in models/ directory:
   - best_model.pth          (~16 MB)  EfficientNet-B0 classifier weights
   - faiss_index.bin          (~1 MB)  FAISS index for knowledge retrieval
   - knowledge_base.json      (~1 MB)  JSON list of knowledge chunks
-  - lora_adapter/            (~50 MB) QLoRA adapter for TinyLlama
-    ├── adapter_config.json
-    ├── adapter_model.safetensors (or .bin)
-    └── ...
+  - lora_adapter/            (~50 MB) QLoRA adapter for TinyLlama (optional, for local mode)
 
 Environment:
-  Runs on HuggingFace Spaces (CPU, 16 GB RAM free tier).
-  For faster inference, upgrade to T4 GPU in Space settings.
+  Runs on HuggingFace Spaces (CPU free tier).
+  Report generation uses HF Serverless Inference API (free).
 """
 
 import os
@@ -36,9 +33,6 @@ logger = logging.getLogger("dermwise")
 # ── Lazy-import heavy libraries (saves startup memory) ──
 faiss = None
 SentenceTransformer = None
-AutoTokenizer = None
-AutoModelForCausalLM = None
-PeftModel = None
 
 def _lazy_import_rag():
     global faiss, SentenceTransformer
@@ -49,22 +43,11 @@ def _lazy_import_rag():
         from sentence_transformers import SentenceTransformer as _ST
         SentenceTransformer = _ST
 
-def _lazy_import_gen():
-    global AutoTokenizer, AutoModelForCausalLM, PeftModel
-    if AutoTokenizer is None:
-        from transformers import AutoTokenizer as _AT, AutoModelForCausalLM as _AM
-        AutoTokenizer = _AT
-        AutoModelForCausalLM = _AM
-    if PeftModel is None:
-        from peft import PeftModel as _PM
-        PeftModel = _PM
-
 # ── Paths ──
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "models")
 CLASSIFIER_PATH = os.path.join(MODEL_DIR, "best_model.pth")
 FAISS_INDEX_PATH = os.path.join(MODEL_DIR, "faiss_index.bin")
 KNOWLEDGE_PATH = os.path.join(MODEL_DIR, "knowledge_base.json")
-LORA_ADAPTER_PATH = os.path.join(MODEL_DIR, "lora_adapter")
 
 # Log what files actually exist so we can debug
 logger.info(f"MODEL_DIR: {MODEL_DIR}")
@@ -93,7 +76,7 @@ MEDICAL_CORRECTIONS = {
 }
 
 # ── Device ──
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cpu")
 logger.info(f"Using device: {DEVICE}")
 
 
@@ -238,60 +221,13 @@ def retrieve_context(query: str, index, knowledge, embedder, top_k=3):
 
 
 # ═══════════════════════════════════════════════════════════════
-# PHASE 3 — TinyLlama QLoRA Report Generation
+# PHASE 3 — Report Generation via HF Inference API (free)
 # ═══════════════════════════════════════════════════════════════
 
-def load_generator():
-    """Load TinyLlama base model + QLoRA adapter. Uses float16 to save memory."""
-    _lazy_import_gen()
-    tokenizer = None
-    model = None
-    base_model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+def generate_report(predicted_class, confidence, top_k, context):
+    """Generate a clinical report using HuggingFace free Inference API."""
+    from huggingface_hub import InferenceClient
 
-    try:
-        logger.info("Loading TinyLlama tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(base_model_name)
-        logger.info("Loading TinyLlama model (float16)...")
-        model = AutoModelForCausalLM.from_pretrained(
-            base_model_name,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-        )
-        logger.info("Base model loaded")
-
-        if os.path.exists(LORA_ADAPTER_PATH):
-            logger.info(f"Loading LoRA adapter from {LORA_ADAPTER_PATH}...")
-            logger.info(f"LoRA adapter dir contents: {os.listdir(LORA_ADAPTER_PATH)}")
-            model = PeftModel.from_pretrained(model, LORA_ADAPTER_PATH)
-            logger.info("QLoRA adapter loaded")
-        else:
-            logger.warning(f"LoRA adapter not found at {LORA_ADAPTER_PATH} — using base model")
-
-        model = model.to(DEVICE)
-        model.eval()
-        logger.info("TinyLlama generator ready")
-    except Exception as e:
-        logger.error(f"Failed to load generator: {e}")
-        logger.error(traceback.format_exc())
-        tokenizer = None
-        model = None
-
-    return tokenizer, model
-
-
-def generate_report(
-    predicted_class: str,
-    confidence: float,
-    top_k: list,
-    context: str,
-    tokenizer,
-    model,
-):
-    """Generate a clinical report using TinyLlama chat template."""
-    if not tokenizer or not model:
-        return "Report generation unavailable — model not loaded."
-
-    # Build the prompt using TinyLlama chat template
     system_prompt = (
         "You are a medical dermatology AI assistant. Generate a structured clinical "
         "report based on the classification result and medical context provided. "
@@ -311,42 +247,76 @@ def generate_report(
         f"Generate a structured clinical report for this skin lesion analysis."
     )
 
-    prompt = (
-        f"<|system|>\n{system_prompt}</s>\n"
-        f"<|user|>\n{user_prompt}</s>\n"
-        f"<|assistant|>\n"
-    )
+    try:
+        # Use HF token from environment (auto-set in HF Spaces)
+        hf_token = os.environ.get("HF_TOKEN", None)
+        client = InferenceClient(token=hf_token)
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
-
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=512,
+        # Use chat_completion with a free serverless model
+        response = client.chat_completion(
+            model="Qwen/Qwen2.5-7B-Instruct",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=512,
             temperature=0.2,
             top_p=0.85,
-            top_k=40,
-            repetition_penalty=1.2,
-            do_sample=True,
-            pad_token_id=tokenizer.eos_token_id,
         )
 
-    # Decode only the generated tokens (skip prompt)
-    generated = tokenizer.decode(
-        outputs[0][inputs["input_ids"].shape[1]:],
-        skip_special_tokens=True,
-    ).strip()
+        report = response.choices[0].message.content.strip()
 
-    # Apply medical fact corrections
-    for wrong, correct in MEDICAL_CORRECTIONS.items():
-        generated = generated.replace(wrong, correct)
+        # Apply medical fact corrections
+        for wrong, correct in MEDICAL_CORRECTIONS.items():
+            report = report.replace(wrong, correct)
 
-    return generated
+        return report
+
+    except Exception as e:
+        logger.error(f"HF Inference API failed: {e}")
+        logger.error(traceback.format_exc())
+        # Fallback: generate a template-based report
+        return _fallback_report(predicted_class, confidence, top_k, context)
+
+
+def _fallback_report(predicted_class, confidence, top_k, context):
+    """Template-based fallback report if the Inference API is unavailable."""
+    severity_map = {
+        "Melanoma (MEL)": "High (Malignant)",
+        "Basal Cell Carcinoma (BCC)": "High (Malignant)",
+        "Actinic Keratosis (AKIEC)": "Moderate (Pre-cancerous)",
+        "Benign Keratosis (BKL)": "Low (Benign)",
+        "Dermatofibroma (DF)": "Low (Benign)",
+        "Melanocytic Nevi (NV)": "Low (Benign)",
+        "Vascular Lesions (VASC)": "Low (Benign)",
+    }
+    severity = severity_map.get(predicted_class, "Unknown")
+    top_k_str = "\n".join(
+        [f"  - {p['class']}: {p['prob']*100:.1f}%" for p in top_k]
+    )
+
+    return (
+        f"1) Classification Summary\n"
+        f"The lesion has been classified as {predicted_class} "
+        f"with a confidence of {confidence*100:.1f}%.\n\n"
+        f"Top predictions:\n{top_k_str}\n\n"
+        f"2) Clinical Description\n"
+        f"Based on the dermoscopic image analysis using EfficientNet-B0 with "
+        f"test-time augmentation, the primary classification indicates {predicted_class}.\n\n"
+        f"3) Risk Assessment\n"
+        f"Risk level: {severity}\n\n"
+        f"4) Recommended Actions\n"
+        f"This is an AI-generated analysis for educational purposes only. "
+        f"Please consult a board-certified dermatologist for proper diagnosis "
+        f"and treatment planning.\n\n"
+        f"DISCLAIMER: This report is generated by an AI system for research "
+        f"and educational purposes only. It should not be used as a substitute "
+        f"for professional medical advice, diagnosis, or treatment."
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
-# Load models at startup — classifier and RAG eagerly,
-# generator lazily (on first request) to avoid startup timeout
+# Load models at startup — classifier and RAG
 # ═══════════════════════════════════════════════════════════════
 
 logger.info("=" * 50)
@@ -366,18 +336,7 @@ except Exception as e:
     logger.error(f"RAG failed: {e}")
     faiss_index, knowledge_base, sentence_embedder = None, [], None
 
-# Generator loaded lazily on first request
-gen_tokenizer = None
-gen_model = None
-_generator_loaded = False
-
-def _ensure_generator():
-    global gen_tokenizer, gen_model, _generator_loaded
-    if not _generator_loaded:
-        logger.info("Loading Phase 3: Generator (first request)...")
-        gen_tokenizer, gen_model = load_generator()
-        _generator_loaded = True
-
+logger.info("Phase 3: Report generation via HF Inference API (no local model needed)")
 logger.info("Startup complete — Gradio app ready")
 logger.info("=" * 50)
 
@@ -391,7 +350,7 @@ def analyze(image: Image.Image):
     Full end-to-end pipeline:
     1. Classify with TTA
     2. Retrieve relevant medical context
-    3. Generate clinical report
+    3. Generate clinical report via HF Inference API
     Returns a dict matching the frontend's expected format.
     """
     if image is None:
@@ -403,21 +362,23 @@ def analyze(image: Image.Image):
     try:
         # Ensure RGB
         image = image.convert("RGB")
+        logger.info("Image converted to RGB")
 
         # Step 1: Classify
+        logger.info("Starting classification...")
         predicted_class, confidence, top_k = classify_with_tta(classifier, image)
         logger.info(f"Classification: {predicted_class} ({confidence:.3f})")
 
         # Step 2: Retrieve context
+        logger.info("Retrieving context...")
         query = f"{predicted_class} skin lesion dermoscopy"
         context = retrieve_context(query, faiss_index, knowledge_base, sentence_embedder)
+        logger.info("Context retrieved")
 
-        # Step 3: Generate report (lazy-loads generator on first call)
-        _ensure_generator()
-        report = generate_report(
-            predicted_class, confidence, top_k, context,
-            gen_tokenizer, gen_model,
-        )
+        # Step 3: Generate report via HF Inference API
+        logger.info("Generating report via HF Inference API...")
+        report = generate_report(predicted_class, confidence, top_k, context)
+        logger.info("Report generated")
 
         return {
             "predicted_class": predicted_class,
@@ -427,9 +388,11 @@ def analyze(image: Image.Image):
             "retrieved_context": context,
         }
     except Exception as e:
-        logger.error(f"Analysis failed: {e}")
+        error_msg = f"Analysis failed: {str(e)}"
+        logger.error(error_msg)
         logger.error(traceback.format_exc())
-        return {"error": f"Analysis failed: {str(e)}"}
+        # Return error as valid JSON so Gradio doesn't swallow it
+        return {"error": error_msg, "traceback": traceback.format_exc()}
 
 
 # ── Gradio app ──
