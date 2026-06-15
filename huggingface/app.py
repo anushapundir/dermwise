@@ -4,11 +4,21 @@ DermWise — HuggingFace Spaces Gradio Backend
 Full inference pipeline:
   Image → EfficientNet-B0 (TTA) → FAISS RAG retrieval → HF Inference API → Clinical report
 
+Report generation — design note:
+  TinyLlama-1.1B was fine-tuned with QLoRA for this task (adapter shipped in
+  models/lora_adapter/ and documented in /training). However, the LIVE pipeline
+  generates the clinical report via the HuggingFace Serverless Inference API using
+  Qwen/Qwen2.5-7B-Instruct (see generate_report()). This was a deliberate
+  quality/latency trade-off: a 7B instruct model produces materially better
+  structured medical reports than a 1.1B model running on the free CPU tier, at no
+  hosting cost. The QLoRA adapter is therefore NOT loaded at runtime — it is kept
+  as evidence of the fine-tuning work and as a path to fully local inference.
+
 Files expected in models/ directory:
-  - best_model.pth          (~16 MB)  EfficientNet-B0 classifier weights
-  - faiss_index.bin          (~1 MB)  FAISS index for knowledge retrieval
-  - knowledge_base.json      (~1 MB)  JSON list of knowledge chunks
-  - lora_adapter/            (~50 MB) QLoRA adapter for TinyLlama (optional, for local mode)
+  - best_model.pth          (~16 MB)  EfficientNet-B0 classifier weights  [USED]
+  - faiss_index.bin          (~1 MB)  FAISS index for knowledge retrieval  [USED]
+  - knowledge_base.json      (~1 MB)  JSON list of knowledge chunks        [USED]
+  - lora_adapter/            (~50 MB) QLoRA adapter for TinyLlama  [NOT loaded at runtime]
 
 Environment:
   Runs on HuggingFace Spaces (CPU free tier).

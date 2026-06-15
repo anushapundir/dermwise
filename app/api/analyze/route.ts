@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 2: Poll for the result via SSE stream ──
-    // TinyLlama loads lazily on first request and inference takes time on CPU
-    // Allow up to 5 minutes for the result
+    // The HF Space may cold-start (free tier sleeps when idle) and CPU-side
+    // classification + the remote LLM call take time. Allow up to 5 minutes.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 300000);
 

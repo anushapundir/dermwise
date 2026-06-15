@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 export const metadata: Metadata = {
   title: "DermWise — AI Skin Lesion Analysis",
   description:
-    "AI-powered skin lesion classification and clinical report generation using EfficientNet-B0, FAISS RAG, and QLoRA fine-tuned TinyLlama.",
+    "AI-powered skin lesion classification and clinical report generation using EfficientNet-B0, FAISS RAG, and an instruction-tuned LLM.",
 };
 
 export default function RootLayout({
