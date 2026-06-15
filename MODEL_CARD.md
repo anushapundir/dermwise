@@ -78,9 +78,9 @@ Offline metric reproduction: [`huggingface/eval.py`](huggingface/eval.py).
 ![Confusion matrices](docs/assets/confusion_matrix.png)
 
 ### Test-Time Augmentation (TTA)
-- 4 views averaged at softmax level. In the notebook: original + horizontal-flip + vertical-flip +
-  both-flip. (The deployed `huggingface/app.py` uses original + h-flip + v-flip + rotate-90 — a
-  near-equivalent 4-view scheme; see "Known discrepancies" below.)
+- 4 views averaged at softmax level: original + horizontal-flip + vertical-flip + both-flip. The
+  deployed `huggingface/app.py` uses the **same four views**, so the live classifier is identical to
+  the one these metrics describe.
 - **Effect is marginal:** ~+0.6% accuracy, roughly flat macro-F1 on test. Reported honestly.
 
 ### Limitations
@@ -132,19 +132,24 @@ Offline metric reproduction: [`huggingface/eval.py`](huggingface/eval.py).
 
 ---
 
-## 4. Known discrepancies (notebook vs. deployed app)
+## 4. Notebook vs. deployed app
 
-These are minor and do not change the headline metrics, but are documented for full transparency:
+The **classifier is now identical** between the notebook (where metrics were measured) and the
+deployed `app.py`: same `best_model.pth` weights, same head (`Dropout(0.2) + Linear(7)`), and the
+same 4-view TTA (original, h-flip, v-flip, both-flip). The deployed RAG also scores with the same
+cosine similarity (L2-normalized query against the normalized FAISS index). So **the reported test
+metrics describe the live classification system exactly.**
 
-| Aspect | Notebook (training/eval) | Deployed `app.py` |
-|---|---|---|
-| Report LLM | TinyLlama-1.1B + QLoRA (local) | Qwen2.5-7B-Instruct (served) |
-| TTA 4th view | both-flip (h+v) | rotate-90 |
-| RAG retrieval | cosine + class filter | top-k search, class-derived query |
-| Classifier head dropout | 0.2 | 0.3 (inference-irrelevant; dropout is off at eval) |
+There is **one intentional difference**, by design (not a defect):
 
-The reported test metrics come from the same `best_model.pth` weights that are deployed, so the
-classifier numbers are representative of the live system.
+| Aspect | Trained / evaluated | Served in the live demo | Why |
+|---|---|---|---|
+| Report LLM | TinyLlama-1.1B + QLoRA (local) | Qwen2.5-7B-Instruct (HF Inference API) | A 7B instruct model writes materially better reports than a 1.1B model on the free CPU tier, at zero cost. The QLoRA adapter is retained as fine-tuning evidence and a local-inference path. |
+
+A minor, deliberate simplification: the deployed retrieval derives its query from the predicted
+class (`"{class} skin lesion dermoscopy"`) and does not replicate the notebook's optional
+`class_filter` pre-pend. This affects only the wording of the generated report, never a reported
+metric.
 
 ---
 

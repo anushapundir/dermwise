@@ -97,10 +97,13 @@ logger.info(f"Using device: {DEVICE}")
 def load_classifier():
     """Load the EfficientNet-B0 classifier with custom head."""
     model = models.efficientnet_b0(weights=None)
-    # Replace classifier head to match 7 classes
+    # Replace classifier head to match 7 classes.
+    # Dropout p=0.2 matches the training notebook (it kept EfficientNet-B0's default
+    # Dropout and only swapped the Linear), so this is identical to the evaluated model.
+    # (Dropout is inactive at inference regardless, but we keep it consistent.)
     in_features = model.classifier[1].in_features
     model.classifier = torch.nn.Sequential(
-        torch.nn.Dropout(p=0.3),
+        torch.nn.Dropout(p=0.2),
         torch.nn.Linear(in_features, len(CLASS_NAMES)),
     )
     if os.path.exists(CLASSIFIER_PATH):
@@ -125,6 +128,8 @@ base_transform = transforms.Compose([
 ])
 
 # ── TTA transforms (4 variants) ──
+# Views match the training-notebook evaluation exactly (original, h-flip, v-flip,
+# both-flip) so the deployed classifier == the model the reported metrics describe.
 tta_transforms = [
     base_transform,  # Original
     transforms.Compose([
@@ -139,9 +144,10 @@ tta_transforms = [
         transforms.ToTensor(),
         transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ]),
-    transforms.Compose([
+    transforms.Compose([  # both-flip (horizontal + vertical) == torch.flip(x, [2, 3])
         transforms.Resize((224, 224)),
-        transforms.Lambda(lambda img: img.rotate(90)),
+        transforms.RandomHorizontalFlip(p=1.0),
+        transforms.RandomVerticalFlip(p=1.0),
         transforms.ToTensor(),
         transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ]),
@@ -217,6 +223,9 @@ def retrieve_context(query: str, index, knowledge, embedder, top_k=3):
         return "No knowledge base available."
 
     query_vec = embedder.encode([query]).astype("float32")
+    # The FAISS index is IndexFlatIP over L2-normalized vectors, so normalizing the
+    # query makes the inner product a true cosine similarity (matches the notebook).
+    faiss.normalize_L2(query_vec)
     distances, indices = index.search(query_vec, top_k)
 
     chunks = []

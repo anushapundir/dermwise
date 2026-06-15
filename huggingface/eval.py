@@ -76,7 +76,7 @@ def load_classifier(weights_path):
     """Same head as the deployed app.py so we evaluate the deployed weights."""
     model = models.efficientnet_b0(weights=None)
     in_feat = model.classifier[1].in_features
-    model.classifier = nn.Sequential(nn.Dropout(p=0.3), nn.Linear(in_feat, len(CLASS_NAMES)))
+    model.classifier = nn.Sequential(nn.Dropout(p=0.2), nn.Linear(in_feat, len(CLASS_NAMES)))
     state = torch.load(weights_path, map_location=DEVICE, weights_only=True)
     model.load_state_dict(state)
     return model.to(DEVICE).eval()

@@ -4,6 +4,15 @@
 > engineer who must understand, maintain, extend, and debug the system without any further
 > documentation. Every claim below is grounded in actual source files, which are linked inline.
 
+> **⏱️ Point-in-time note.** This review was written as the *initial* analysis. Several issues it
+> flags have since been resolved: the TinyLlama-vs-Qwen documentation contradiction is now an
+> explicit, intentional design note (see [`README.md`](README.md) Phase 3 and
+> [`MODEL_CARD.md`](MODEL_CARD.md) §4); the deployed classifier's TTA and head now match the
+> evaluated model exactly; the stale `route.ts` comment is fixed; and evaluation metrics now exist
+> ([`MODEL_CARD.md`](MODEL_CARD.md), [`huggingface/eval.py`](huggingface/eval.py)). Treat this
+> document as the analysis that *motivated* those changes — the README and model card are the current
+> source of truth.
+
 ---
 
 ## Table of Contents

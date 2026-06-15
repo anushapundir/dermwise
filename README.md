@@ -86,9 +86,9 @@ graph LR
 
 ### Phase 1 — EfficientNet-B0 classifier
 - **Input:** 224×224 dermoscopic image, ImageNet normalization
-- **Backbone:** EfficientNet-B0 (transfer learning) with a custom `Dropout(0.3) + Linear(7)` head
-- **Test-Time Augmentation:** 4 views (original, h-flip, v-flip, rotate 90°); softmax probabilities
-  are averaged across views for a more robust prediction
+- **Backbone:** EfficientNet-B0 (transfer learning) with a custom `Dropout(0.2) + Linear(7)` head
+- **Test-Time Augmentation:** 4 views (original, h-flip, v-flip, both-flip); softmax probabilities
+  are averaged across views for a more robust prediction (identical to the evaluated model)
 - **Output:** predicted class + top-3 probabilities
 
 ### Phase 2 — FAISS knowledge retrieval (RAG)
