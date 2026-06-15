@@ -164,3 +164,60 @@ python eval.py --test-split path/to/test_split.csv --image-root path/to/HAM10000
 
 The confusion-matrix figure in this card can be re-rendered from the recorded counts with
 [`docs/assets/make_confusion_matrix.py`](docs/assets/make_confusion_matrix.py).
+
+---
+
+## 6. Ablations & experiment log
+
+All figures below are from the recorded training/evaluation runs in
+[`training/dermwise_pipeline.ipynb`](training/dermwise_pipeline.ipynb).
+
+### 6.1 Two-stage transfer learning (the big lever)
+
+Unfreezing the backbone after the head had warmed up was the single largest improvement —
+the linear-probe stage alone is far from sufficient on dermoscopic images.
+
+| Stage | What trains | Best **val** macro-F1 |
+|---|---|---|
+| Stage 1 — head only (backbone frozen) | classifier head | 0.485 |
+| Stage 2 — full fine-tune (backbone unfrozen) | whole network | **0.740** |
+
+→ Fine-tuning the backbone added **+0.255 macro-F1** over the frozen-feature baseline.
+
+### 6.2 Test-Time Augmentation (marginal — reported honestly)
+
+4-view TTA (original + h-flip + v-flip + both-flip), softmax-averaged.
+
+| Split | Variant | Accuracy | Macro-F1 |
+|---|---|---|---|
+| Validation | Standard | 0.8299 | 0.7398 |
+| Validation | TTA | **0.8361** | **0.7509** |
+| Test | Standard | 0.8130 | **0.7055** |
+| Test | TTA | **0.8190** | 0.7033 |
+
+→ TTA helps slightly on accuracy (~+0.6% test) but is roughly flat on macro-F1 (even marginally
+lower on test). It is kept for robustness, not because it is a major contributor. The "best variant"
+was selected on the **validation** set (TTA) and then reported on test, to avoid tuning on test.
+
+### 6.3 Class-imbalance strategy (qualitative finding)
+
+HAM10000 is dominated by `nv` (~67%). Two mechanisms were considered:
+
+| Approach | Outcome |
+|---|---|
+| `WeightedRandomSampler` only (inverse-frequency) | **Chosen.** Balances batches without distorting the loss surface. |
+| Weighted sampler **+** class-weighted loss | Rejected — stacking both *over-corrected* toward rare classes and widened the train/val gap. |
+
+Final recipe: weighted sampler + plain `CrossEntropyLoss` with label smoothing (0.1). The
+per-class results reflect this: high recall on minority malignant/pre-cancerous classes
+(mel 0.73, bcc 0.77, akiec 0.75) without collapsing majority-class precision (nv 0.94).
+
+### 6.4 QLoRA efficiency (report generator)
+
+| Metric | Value |
+|---|---|
+| Base model | TinyLlama-1.1B-Chat (4-bit NF4) |
+| Trainable params | **12.6M (2.01% of the model)** |
+| LoRA config | r=16, α=32, dropout=0.05, all attn+MLP projections |
+
+→ Parameter-efficient fine-tuning adapted the model on a single GPU by training only ~2% of weights.
