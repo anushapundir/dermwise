@@ -4,14 +4,30 @@
 > engineer who must understand, maintain, extend, and debug the system without any further
 > documentation. Every claim below is grounded in actual source files, which are linked inline.
 
-> **⏱️ Point-in-time note.** This review was written as the *initial* analysis. Several issues it
-> flags have since been resolved: the TinyLlama-vs-Qwen documentation contradiction is now an
-> explicit, intentional design note (see [`README.md`](README.md) Phase 3 and
-> [`MODEL_CARD.md`](MODEL_CARD.md) §4); the deployed classifier's TTA and head now match the
-> evaluated model exactly; the stale `route.ts` comment is fixed; and evaluation metrics now exist
-> ([`MODEL_CARD.md`](MODEL_CARD.md), [`huggingface/eval.py`](huggingface/eval.py)). Treat this
-> document as the analysis that *motivated* those changes — the README and model card are the current
-> source of truth.
+> **✅ Hardening update — this document now reflects the current (post-hardening) system.**
+> This review began as the *initial* analysis and then drove a round of "portfolio hardening." The
+> sections below have been updated to match the code as it stands today. Summary of what changed since
+> the first draft:
+>
+> - **TinyLlama vs. Qwen:** no longer a hidden contradiction — it is now an **explicit, intentional
+>   design decision** (TinyLlama-1.1B was fine-tuned with QLoRA and shipped as evidence; the live demo
+>   serves Qwen2.5-7B for quality on free CPU). Documented in [`README.md`](README.md) Phase 3 and
+>   [`MODEL_CARD.md`](MODEL_CARD.md) §4.
+> - **"Report == ship":** the deployed classifier in `app.py` was aligned to the evaluated model —
+>   TTA 4th view `rotate-90 → both-flip`, head dropout `0.3 → 0.2`, and the RAG query is now
+>   L2-normalized for true cosine. The reported metrics therefore describe the live model exactly.
+> - **Evaluation now exists:** real held-out metrics (Acc 81.9%, macro-F1 0.703, melanoma recall
+>   0.732), a per-class table, a confusion-matrix figure, and an offline reproduction script
+>   ([`MODEL_CARD.md`](MODEL_CARD.md), [`huggingface/eval.py`](huggingface/eval.py),
+>   [`docs/assets/`](docs/assets/)).
+> - **ML work surfaced:** the training/fine-tuning notebook is now in [`training/`](training/), and a
+>   **Grad-CAM** explainability figure was added.
+> - **Hygiene:** the stale `route.ts` comment is fixed and the unused `NEXT_PUBLIC_HF_SPACE_URL` was
+>   removed from `.env.example`.
+>
+> Still open (intentionally deferred as non-essential for a demo): duplicated severity maps, no
+> automated test suite, no caching/auth/rate-limiting. The README and model card remain the
+> canonical source of truth for current behavior.
 
 ---
 
@@ -88,14 +104,16 @@ pipeline — with the whole thing runnable on free CPU-only hosting.
 3. `lib/api.ts` — the typed frontend API client and the data contract.
 4. The model artifacts under `huggingface/models/`.
 
-> **⚠️ Critical onboarding note (read this first):** The README, the `app.py` module docstring,
-> and the committed `lora_adapter/` directory all claim report generation is done by a
-> **locally fine-tuned TinyLlama-1.1B QLoRA model**. **This is not what the running code does.**
-> The actual report generation calls the **HuggingFace Serverless Inference API** with
-> **`Qwen/Qwen2.5-7B-Instruct`** ([app.py:256-265](huggingface/app.py#L256-L265)). The TinyLlama
-> LoRA adapter is shipped in the repo but **never loaded or invoked**. Treat the TinyLlama
-> references in docs as stale/aspirational. This is the single biggest source of confusion in the
-> codebase — see [§11](#11-ai--ml--model-architecture) and [§16](#16-technical-decisions).
+> **📌 Onboarding note — two models, by design (read this first):** Report generation has a
+> **trained** model and a **served** model, and they are deliberately different. TinyLlama-1.1B was
+> **fine-tuned with QLoRA** for this task (adapter shipped in `lora_adapter/`, training code in
+> [`training/`](training/)), but the live demo generates reports via the **HuggingFace Serverless
+> Inference API** with **`Qwen/Qwen2.5-7B-Instruct`** ([app.py:256-265](huggingface/app.py#L256-L265)).
+> The QLoRA adapter is **not loaded at runtime** — kept as evidence of the fine-tuning work and as a
+> path to fully local inference. This is an intentional quality/latency trade-off (a 7B instruct model
+> writes materially better reports than a 1.1B model on free CPU), documented in
+> [`README.md`](README.md) Phase 3 and [`MODEL_CARD.md`](MODEL_CARD.md) §4 — see also
+> [§11](#11-ai--ml--model-architecture) and [§16](#16-technical-decisions).
 
 ---
 
@@ -171,6 +189,7 @@ DREMWISE/
 │
 ├── huggingface/                 # ⭐⭐ The entire AI backend (separate deploy target)
 │   ├── app.py                   # ⭐⭐⭐ Gradio app: 3-stage pipeline orchestration
+│   ├── eval.py                  # Offline metric reproduction (held-out test set; not in request path)
 │   ├── Dockerfile               # Container build for HF Spaces (docker SDK)
 │   ├── requirements.txt         # Python deps (torch installed separately in Dockerfile)
 │   ├── README.md                # HF Space config front-matter (sdk: docker)
@@ -178,14 +197,17 @@ DREMWISE/
 │       ├── best_model.pth       # EfficientNet-B0 weights (~16 MB)
 │       ├── faiss_index.bin      # FAISS index (53 vectors × 384 dim)
 │       ├── knowledge_base.json  # 53 medical knowledge chunks
-│       └── lora_adapter/        # TinyLlama QLoRA adapter — PRESENT BUT UNUSED at runtime
+│       └── lora_adapter/        # TinyLlama QLoRA adapter — fine-tuning evidence; not loaded at runtime (by design)
 │           ├── adapter_config.json, adapter_model.safetensors
 │           ├── tokenizer*.json, chat_template.jinja
 │
-├── .env.example                 # NEXT_PUBLIC_HF_SPACE_URL + HF_SPACE_URL
+├── training/                    # ⭐ Kaggle notebook (train + RAG + QLoRA) + gradcam.py + README
+├── docs/assets/                 # Confusion-matrix + Grad-CAM figures (+ render scripts)
+├── MODEL_CARD.md                # Dataset, split, training config, per-class metrics, limitations
+├── .env.example                 # HF_SPACE_URL (server-only)
 ├── next.config.js, tailwind.config.js, postcss.config.js, tsconfig.json
 ├── package.json                 # Next/React/Tailwind only — no backend deps here
-└── README.md                    # Project overview (note: TinyLlama claims are stale)
+└── README.md                    # Project overview (honest TinyLlama/Qwen design note + Results)
 ```
 
 **Folder purposes & interactions**
@@ -259,7 +281,7 @@ launched on `0.0.0.0:7860` ([app.py:408-409](huggingface/app.py#L408-L409)).
 2. Resolve model paths and log directory contents for debugging
    ([app.py:46-56](huggingface/app.py#L46-L56)).
 3. **Load Phase 1 — classifier** via `load_classifier()` ([app.py:322-329](huggingface/app.py#L322-L329)).
-   Builds EfficientNet-B0, swaps the head for a 7-class `Dropout(0.3)+Linear`, loads
+   Builds EfficientNet-B0, swaps the head for a 7-class `Dropout(0.2)+Linear`, loads
    `best_model.pth` (`weights_only=True`), moves to CPU, sets `.eval()`.
 4. **Load Phase 2 — RAG** via `load_rag()` ([app.py:331-337](huggingface/app.py#L331-L337)).
    Lazily imports FAISS + sentence-transformers, reads the JSON knowledge base, reads the FAISS
@@ -464,7 +486,7 @@ in this system is limited to **read-only model artifacts on disk**, loaded once 
 | `best_model.pth` | PyTorch state_dict | ~16 MB | EfficientNet-B0 weights | [app.py:96-99](huggingface/app.py#L96-L99) |
 | `faiss_index.bin` | FAISS binary index | ~81 KB | 53 vectors × 384-dim, vector search | [app.py:189-191](huggingface/app.py#L189-L191) |
 | `knowledge_base.json` | JSON array | ~24 KB | 53 medical chunks `{class, category, text}` | [app.py:182-185](huggingface/app.py#L182-L185) |
-| `lora_adapter/` | safetensors + config | ~50 MB | TinyLlama QLoRA adapter — **unused at runtime** | (not loaded) |
+| `lora_adapter/` | safetensors + config | ~50 MB | TinyLlama QLoRA adapter — fine-tuning evidence; **not loaded at runtime (by design)** | (not loaded) |
 
 The **FAISS index is the closest thing to a "database"** — it is an in-process vector store, not a
 server. The knowledge base is a parallel array: FAISS returns integer indices, which are used to
@@ -542,7 +564,7 @@ graph TD
     IMG["Dermoscopic image (PIL RGB)"] --> S1
     subgraph S1["Stage 1 — Vision Classifier"]
         TTA["4× TTA transforms<br/>(orig, hflip, vflip, rot90)"]
-        EFF["EfficientNet-B0 + Dropout(0.3)+Linear(7)"]
+        EFF["EfficientNet-B0 + Dropout(0.2)+Linear(7)"]
         AVG["Average softmax over 4 views"]
         TTA --> EFF --> AVG
     end
@@ -570,23 +592,28 @@ graph TD
 
 ### Stage 1 — EfficientNet-B0 classifier ([app.py:87-168](huggingface/app.py#L87-L168))
 - **Architecture:** torchvision `efficientnet_b0(weights=None)` with the head replaced by
-  `Sequential(Dropout(0.3), Linear(in_features, 7))` ([app.py:89-95](huggingface/app.py#L89-L95)).
+  `Sequential(Dropout(0.2), Linear(in_features, 7))` ([app.py:89-95](huggingface/app.py#L89-L95))
+  — dropout `0.2` matches the training notebook (it kept EfficientNet-B0's default dropout).
 - **Classes (HAM10000, 7):** `akiec, bcc, bkl, df, mel, nv, vasc`
   ([app.py:59-68](huggingface/app.py#L59-L68)).
 - **Preprocessing:** resize 224×224, `ToTensor`, ImageNet mean/std normalization
   ([app.py:108-115](huggingface/app.py#L108-L115)).
-- **Test-Time Augmentation:** 4 views — original, horizontal flip, vertical flip, rotate 90°
-  ([app.py:118-138](huggingface/app.py#L118-L138)). Softmax probabilities are **averaged** across
-  views before `argsort` for the top-3 ([app.py:147-168](huggingface/app.py#L147-L168)). This is an
-  inference-time ensemble that reduces variance on a single image.
+- **Test-Time Augmentation:** 4 views — original, horizontal flip, vertical flip, both-flip (h+v)
+  ([app.py:118-138](huggingface/app.py#L118-L138)). These views match the notebook evaluation exactly,
+  so the deployed classifier is identical to the model the reported metrics describe. Softmax
+  probabilities are **averaged** across views before `argsort` for the top-3
+  ([app.py:147-168](huggingface/app.py#L147-L168)). This is an inference-time ensemble that reduces
+  variance on a single image (measured effect: marginal — see [`MODEL_CARD.md`](MODEL_CARD.md) §6.2).
 - **Output:** human-readable class name (e.g. `"Melanoma (MEL)"`), confidence (top prob), and a
   top-3 list of `{class, prob}`.
 
 ### Stage 2 — FAISS RAG ([app.py:175-220](huggingface/app.py#L175-L220))
 - **Embedder:** `sentence-transformers` `all-MiniLM-L6-v2` (384-dim)
   ([app.py:196](huggingface/app.py#L196)).
-- **Index:** FAISS read from `faiss_index.bin` (53 vectors), searched with `index.search(vec, 3)`
-  ([app.py:209-210](huggingface/app.py#L209-L210)).
+- **Index:** FAISS read from `faiss_index.bin` (53 vectors). The query is **L2-normalized**
+  (`faiss.normalize_L2`) before `index.search(vec, 3)`, so the inner-product index returns true
+  cosine similarity — matching how the index was built in the notebook
+  ([app.py:209-211](huggingface/app.py#L209-L211)).
 - **Query construction:** `"{predicted_class} skin lesion dermoscopy"`
   ([app.py:374](huggingface/app.py#L374)) — retrieval is conditioned on the *classifier's output*,
   so the LLM gets class-relevant medical facts.
@@ -609,16 +636,17 @@ graph TD
   template-based report with a hard-coded severity map
   ([app.py:282-315](huggingface/app.py#L282-L315)).
 
-### The TinyLlama LoRA situation (important)
+### TinyLlama (fine-tuned) vs. Qwen (served) — an intentional split
 The repo ships a **QLoRA adapter** for `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
 ([adapter_config.json:6](huggingface/models/lora_adapter/adapter_config.json#L6)) with
 `r=16, lora_alpha=32, lora_dropout=0.05`, targeting all attention + MLP projections
-(`q/k/v/o_proj, gate/up/down_proj`) — a textbook QLoRA configuration. **However, `app.py` contains
-no `peft`/`transformers` model loading for it.** The README and the `app.py` docstring describe
-TinyLlama as the report generator, but the running code uses the remote Qwen model. The most likely
-history: the project began with a local fine-tuned TinyLlama, then pivoted to the free serverless
-Inference API for quality/throughput on the CPU tier, leaving the adapter and docs behind. (Note the
-stale comment at [route.ts:71](app/api/analyze/route.ts#L71) still says "TinyLlama loads lazily".)
+(`q/k/v/o_proj, gate/up/down_proj`) — a textbook QLoRA configuration. The fine-tuning was real (see
+[`training/`](training/)). **At runtime, `app.py` deliberately does not load the adapter** — it serves
+the remote Qwen2.5-7B model instead, because a 7B instruct model writes materially better structured
+medical reports than a 1.1B model on the free CPU tier, at zero hosting cost. This is documented as a
+quality/latency trade-off in [`README.md`](README.md) Phase 3 and [`MODEL_CARD.md`](MODEL_CARD.md) §4;
+the adapter is retained as fine-tuning evidence and a path to fully local inference. (The previously
+stale `route.ts` comment about TinyLlama loading lazily has been corrected.)
 
 ---
 
@@ -660,7 +688,7 @@ Concepts that **actually appear** in this codebase:
 | **Vector database / similarity search** | ✅ | FAISS in-process index [app.py:189-210](huggingface/app.py#L189-L210) |
 | **Prompt engineering** | ✅ | system/user templates [app.py:231-248](huggingface/app.py#L231-L248) |
 | **LLM inference via hosted API** | ✅ | `InferenceClient.chat_completion` [app.py:256](huggingface/app.py#L256) |
-| **QLoRA / PEFT fine-tuning** | ⚠️ artifact only | `adapter_config.json` (adapter shipped, not loaded) |
+| **QLoRA / PEFT fine-tuning** | ✅ trained (not served) | `adapter_config.json` + [`training/`](training/); served model is Qwen by design |
 | **Output guardrails / fact correction** | ✅ | `MEDICAL_CORRECTIONS` [app.py:70-76](huggingface/app.py#L70-L76) |
 | **Graceful degradation / fallback** | ✅ | `_fallback_report` [app.py:282-315](huggingface/app.py#L282-L315) |
 | **Server-Sent Events (SSE) streaming** | ✅ | Gradio result stream [route.ts:76-115](app/api/analyze/route.ts#L76-L115) |
@@ -687,7 +715,7 @@ from scratch; pre-trained features transfer well.
 together) and MBConv blocks for a strong accuracy/parameter trade-off (~5.3M params). The
 convolutional backbone extracts features; only the head maps features → 7 classes.
 **In this project:** [app.py:89-95](huggingface/app.py#L89-L95) swaps `model.classifier` for
-`Dropout(0.3)+Linear(in_features,7)`. Note `weights=None` at load time because the *fine-tuned*
+`Dropout(0.2)+Linear(in_features,7)`. Note `weights=None` at load time because the *fine-tuned*
 weights come from `best_model.pth`, not ImageNet defaults.
 **Why chosen:** Small, CPU-friendly, accurate — ideal for a free-tier Space. **Alternatives:**
 ResNet-50 (heavier), ViT (data-hungry), MobileNet (lighter but typically less accurate).
@@ -752,9 +780,11 @@ small low-rank adapter matrices instead of all weights.
 a single consumer GPU.
 **How it works:** Freeze the quantized base; inject trainable rank-`r` matrices `A,B` into target
 linear layers (here `q/k/v/o_proj` + MLP projections), so the update is `ΔW = BA`. Only `A,B` train.
-**In this project:** `adapter_config.json` shows `r=16, alpha=32, dropout=0.05` over TinyLlama-1.1B.
-**But it is not loaded at runtime** — see [§11](#11-ai--ml--model-architecture). Keep it as evidence
-of the original design / a future local-inference path.
+**In this project:** `adapter_config.json` shows `r=16, alpha=32, dropout=0.05` over TinyLlama-1.1B;
+training in [`training/`](training/) reports ~12.6M trainable params (2.0% of the model).
+**It is intentionally not loaded at runtime** — the live demo serves Qwen2.5-7B for quality on free
+CPU (see [§11](#11-ai--ml--model-architecture)). The adapter is kept as fine-tuning evidence and a
+future local-inference path.
 
 ### 14.7 Server-Sent Events (SSE)
 
@@ -832,7 +862,7 @@ stateDiagram-v2
 | **EfficientNet-B0** | Best accuracy-per-param on CPU | ~16 MB weights, fast | Lower ceiling than bigger nets | ResNet/ViT |
 | **TTA at inference** | Cheap robustness without retraining | More stable predictions | 4× CPU cost | Single pass; model ensemble |
 | **FAISS for 53 chunks** | Standard RAG tooling, future-proof | Scales if KB grows | Overkill now; alignment invariant with JSON | numpy cosine sim |
-| **Remote Qwen2.5-7B over local TinyLlama** | Free serverless API gives a much stronger model than a 1.1B running on CPU | Better reports, no local LLM memory/latency | External dependency; rate limits; network failure path; docs now stale | Run TinyLlama LoRA locally (slower/weaker), OpenAI (paid) |
+| **Remote Qwen2.5-7B over local TinyLlama** | Free serverless API gives a much stronger model than a 1.1B running on CPU | Better reports, no local LLM memory/latency | External dependency; rate limits; network failure path (mitigated by template fallback) | Run TinyLlama LoRA locally (slower/weaker), OpenAI (paid) |
 | **No DB / no auth / no cache** | It's a stateless demo; privacy by not storing images | Simplicity; nothing to breach or migrate | No history, no caching wins, no rate limiting | Add Postgres/Redis/auth for productization |
 | **String-replace medical guardrail** | Cheap, deterministic safety net for the worst factual errors | Simple, predictable | Brittle: only catches exact phrases | LLM-based fact-checker; structured output validation |
 
@@ -866,9 +896,8 @@ design, given the project's size.
 **Current posture:**
 - **Authentication/Authorization:** *None.* `/api/analyze` is fully open — anyone can POST images.
 - **Secrets management:** `HF_SPACE_URL` is server-only (good — not `NEXT_PUBLIC_`) and read from
-  env ([route.ts:15](app/api/analyze/route.ts#L15)). The `.env.example` *also* lists
-  `NEXT_PUBLIC_HF_SPACE_URL`, which would leak the URL to the browser **if** any client code used it
-  — currently nothing does, but it's a footgun. `HF_TOKEN` is read from env on the Space
+  env ([route.ts:15](app/api/analyze/route.ts#L15)). The previously-listed `NEXT_PUBLIC_HF_SPACE_URL`
+  footgun has been **removed** from `.env.example`. `HF_TOKEN` is read from env on the Space
   ([app.py:252](huggingface/app.py#L252)) and never logged.
 - **Input validation:** MIME + 10 MB size client-side ([page.tsx:32-38](app/dashboard/page.tsx#L32-L38));
   server checks only file presence ([route.ts:31](app/api/analyze/route.ts#L31)) — **no server-side
@@ -895,7 +924,7 @@ design, given the project's size.
    before forwarding (defense in depth; client checks are trivially bypassed).
 3. **Base64 of a 10 MB file in a serverless function** → memory pressure / potential abuse; cap
    server-side and reject early.
-4. **`NEXT_PUBLIC_HF_SPACE_URL` in `.env.example`** → remove it to avoid accidental URL exposure.
+4. **`NEXT_PUBLIC_HF_SPACE_URL` in `.env.example`** → ✅ **done** — removed to avoid accidental URL exposure.
 5. **Guardrail brittleness** → the exact-string corrections miss paraphrases; consider structured
    output + validation or a second-pass checker.
 
@@ -1001,7 +1030,7 @@ on push.
 | Variable | Tier | Purpose |
 |---|---|---|
 | `HF_SPACE_URL` | Vercel (server) | Upstream Gradio base URL the proxy calls ([route.ts:15](app/api/analyze/route.ts#L15)) |
-| `NEXT_PUBLIC_HF_SPACE_URL` | (in `.env.example` only) | Would expose URL to browser — currently unused; recommend removing |
+| `NEXT_PUBLIC_HF_SPACE_URL` | removed | Previously in `.env.example`; deleted during hardening to avoid exposing the URL to the browser |
 | `HF_TOKEN` | HF Space | Auth for the Inference API; auto-set in Spaces ([app.py:252](huggingface/app.py#L252)) |
 
 **Runtime architecture:** Vercel serverless function (Node) ↔ HTTPS ↔ HF Docker container running a
@@ -1092,42 +1121,47 @@ python app.py                    # Gradio on http://localhost:7860
 
 ## 24. Future Improvements
 
-**Correctness / consistency (do these first)**
-1. **Resolve the TinyLlama vs. Qwen contradiction.** Either wire up the local LoRA adapter or delete
-   it and fix the README/docstring/comment ([README.md:138-142](README.md#L138-L142),
-   [app.py:1-16](huggingface/app.py#L1-L16), [route.ts:71](app/api/analyze/route.ts#L71)). Right now
-   the docs actively mislead new engineers.
-2. **Single source of truth for severity.** Unify the three severity definitions
+### ✅ Completed during the hardening pass
+- **TinyLlama vs. Qwen** — resolved: now an explicit, intentional design note across the README,
+  `app.py` docstring, `route.ts` comment, and `MODEL_CARD.md` §4 (no longer misleading).
+- **Report == ship** — the deployed classifier was aligned to the evaluated model (TTA both-flip,
+  dropout 0.2, normalized RAG query).
+- **Evaluation harness** — real held-out metrics + per-class table + confusion-matrix figure now
+  exist, plus an offline reproduction script ([`huggingface/eval.py`](huggingface/eval.py)) and a
+  model card ([`MODEL_CARD.md`](MODEL_CARD.md)).
+- **ML visibility** — training/fine-tuning notebook surfaced in [`training/`](training/); **Grad-CAM**
+  explainability figure added.
+- **Hygiene** — stale `route.ts` comment fixed; unused `NEXT_PUBLIC_HF_SPACE_URL` removed.
+
+### Still open (deliberately deferred — non-essential for a demo)
+
+**Correctness / consistency**
+1. **Single source of truth for severity.** Unify the duplicated severity definitions
    ([ReportDisplay.tsx:5-13](components/ReportDisplay.tsx#L5-L13),
    [app.py:284-292](huggingface/app.py#L284-L292)) so they can't drift.
 
 **Reliability**
-3. **Server-side input validation** (MIME magic bytes, size, dimensions) in `route.ts`.
-4. **Stream the SSE incrementally** rather than `await text()` to render partial results and avoid
-   buffering the whole stream ([route.ts:93](app/api/analyze/route.ts#L93)).
-5. **Retry/backoff** around the HF Inference API call and the Gradio call (transient 5xx/rate limits).
+2. **Server-side input validation** (MIME magic bytes, size, dimensions) in `route.ts`.
+3. **Stream the SSE incrementally** rather than `await text()` to render partial results.
+4. **Retry/backoff** around the HF Inference API call and the Gradio call (transient 5xx/rate limits).
 
 **Performance / scale**
-6. **Add a result cache** (content-hash or class-bucketed) — none exists ([§9](#9-caching-layer)).
-7. **Warm-up ping** on dashboard mount to hide cold starts.
-8. **Optional/lighter TTA** fast path to cut CPU cost 2–4×.
-9. **Upgrade HF hardware** or move to an always-warm runtime for production traffic.
+5. **Add a result cache** (content-hash or class-bucketed) — none exists ([§9](#9-caching-layer)).
+6. **Warm-up ping** on dashboard mount to hide cold starts.
+7. **Upgrade HF hardware** or move to an always-warm runtime for production traffic.
 
 **Security**
-10. **Rate limiting + (optional) auth** on the open `/api/analyze` endpoint.
-11. **Remove `NEXT_PUBLIC_HF_SPACE_URL`** from `.env.example` to avoid accidental URL exposure.
+8. **Rate limiting + (optional) auth** on the open `/api/analyze` endpoint.
 
 **AI quality**
-12. **Stronger guardrails** than exact-string replacement (structured output validation, a
-    fact-check pass, confidence-thresholded "uncertain" responses).
-13. **Calibration / abstention**: surface a low-confidence warning when top-1 prob is near the
-    decision boundary, and consider returning "uncertain — please retake the photo".
-14. **Evaluation harness**: there are no tests or eval scripts; add a small held-out set to track
-    classifier accuracy and report-quality regressions.
+9. **Stronger guardrails** than exact-string replacement (structured output validation / fact-check pass).
+10. **Calibration / abstention**: surface a low-confidence warning when top-1 prob is near the
+    decision boundary ("uncertain — please retake the photo").
+11. **Automated test suite** — there is still no unit/integration test coverage (eval is manual).
 
-**Technical debt summary:** stale docs (TinyLlama), duplicated severity logic, no tests, no caching,
-no rate limiting, manual snake↔camel mapping, SSE read non-incrementally, and a shipped-but-unused
-50 MB LoRA adapter inflating the repo/Space.
+**Remaining technical debt:** duplicated severity logic, no automated tests, no caching, no rate
+limiting, manual snake↔camel mapping, SSE read non-incrementally, and the (intentionally) shipped
+50 MB LoRA adapter that isn't served at runtime.
 
 ---
 
