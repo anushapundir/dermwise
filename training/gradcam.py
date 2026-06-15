@@ -110,7 +110,9 @@ def main():
     ap.add_argument("--image-root", default="/kaggle/input", help="Fallback dir to find <image_id>.jpg")
     ap.add_argument("--out", default="gradcam_examples.png")
     ap.add_argument("--max-try", type=int, default=40, help="Images to scan per class to find a correct one")
-    args = ap.parse_args()
+    # parse_known_args (not parse_args) so this also runs when pasted into a Jupyter/Kaggle
+    # cell, where sys.argv carries kernel flags like -f that argparse would otherwise reject.
+    args, _ = ap.parse_known_args()
 
     model = load_classifier(args.weights)
     target_layer = model.features[-1]   # last conv block of EfficientNet-B0
