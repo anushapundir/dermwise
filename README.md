@@ -125,18 +125,42 @@ graph LR
 
 ## 📊 Results & evaluation
 
-> _Evaluation metrics are being added (see roadmap). This section will report overall accuracy,
-> macro-F1, per-class precision/recall (with emphasis on melanoma sensitivity), the confusion
-> matrix, and the measured TTA vs. no-TTA improvement, computed on the held-out HAM10000 test split._
+All numbers below are on the **held-out test set (1,497 images)**. Crucially, the data is split
+**by `lesion_id`, not by image** — the same physical lesion is photographed multiple times in
+HAM10000, so an image-level split would leak lesions between train and test and inflate the score.
+The split is stratified, seeded (42), 70/15/15, and asserts zero lesion overlap. Reproduce with
+[`huggingface/eval.py`](huggingface/eval.py); full methodology in [`MODEL_CARD.md`](MODEL_CARD.md).
 
-| Metric | Value |
+| Metric (test set) | Value |
 |---|---|
-| Overall accuracy | _TBD_ |
-| Macro F1 | _TBD_ |
-| Melanoma (MEL) recall | _TBD_ |
-| TTA improvement (Δ accuracy) | _TBD_ |
+| **Accuracy** | **81.9%** |
+| **Macro F1** | **0.703** |
+| **Melanoma (MEL) recall** | **73.2%** |
+| Validation Macro F1 | 0.751 |
 
-_Confusion matrix and per-class breakdown: see [`huggingface/eval.py`](huggingface/eval.py) (coming soon)._
+**Per-class (test, TTA):**
+
+| Class | Precision | Recall | F1 | Support |
+|---|---|---|---|---|
+| akiec (pre-cancer) | 0.463 | 0.745 | 0.571 | 51 |
+| bcc (malignant) | 0.641 | 0.766 | 0.698 | 77 |
+| bkl (benign) | 0.687 | 0.573 | 0.625 | 157 |
+| df (benign) | 0.565 | 0.591 | 0.578 | 22 |
+| **mel (malignant)** | 0.594 | **0.732** | 0.656 | 168 |
+| nv (benign) | 0.939 | 0.884 | 0.911 | 1000 |
+| vasc (benign) | 0.905 | 0.864 | 0.884 | 22 |
+| **macro avg** | 0.685 | 0.737 | **0.703** | 1497 |
+
+![Confusion matrices (validation and test, TTA)](docs/assets/confusion_matrix.png)
+
+**Notes & honest caveats:**
+- Performance is strongest on the common `nv` class (F1 0.91) and weakest on the rare `df`/`akiec`
+  classes (F1 ~0.57) — the expected effect of class imbalance even after re-sampling.
+- The model favors **recall on malignant/pre-cancerous classes** (mel 0.73, bcc 0.77, akiec 0.75)
+  at the cost of precision — a deliberately appropriate bias for a *screening* tool, where missing a
+  melanoma is far worse than a false alarm.
+- **Test-Time Augmentation gave only marginal gains** (≈+0.6% accuracy, roughly flat macro-F1). It
+  is kept for robustness but is not a major contributor — reported honestly rather than overclaimed.
 
 ---
 
@@ -179,9 +203,12 @@ DREMWISE/
 ├── huggingface/                 # AI backend (separate deploy target)
 │   ├── app.py                   # Gradio app — 3-stage pipeline
 │   ├── Dockerfile               # CPU-only torch build for HF Spaces
+│   ├── eval.py                  # Offline metric reproduction (held-out test set)
 │   ├── requirements.txt
 │   └── models/                  # best_model.pth · faiss_index.bin · knowledge_base.json · lora_adapter/
-├── training/                    # Training & fine-tuning notebooks (classifier, QLoRA, RAG index)  [roadmap]
+├── training/                    # Training & fine-tuning notebook (classifier, RAG, QLoRA) + README
+├── docs/assets/                 # Confusion-matrix figure + render script
+├── MODEL_CARD.md                # Dataset, split, training config, per-class metrics, limitations
 ├── PROJECT_DEEP_DIVE.md         # Full architecture review
 └── README.md
 ```
