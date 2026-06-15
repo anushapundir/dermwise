@@ -227,6 +227,93 @@ DREMWISE/
 There are **no** `/services`, `/repositories`, `/controllers`, `/workers`, `/db`, or `/agents`
 folders — the project is intentionally flat because the backend is a single Python module.
 
+### 3.1 Complete file-by-file reference
+
+Every tracked file in the repo, what it does, and why it exists. Files are grouped by folder.
+
+#### Root — config, tooling & documentation
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `README.md` | Project overview: pitch, Mermaid architecture + pipeline diagrams, AI-pipeline details, **Results**, Explainability, setup, structure, production-considerations | The 90-second front door for recruiters/engineers; the canonical "what & how" |
+| `MODEL_CARD.md` | Dataset, lesion-level split, preprocessing/augmentation, two-stage training config, per-class metrics, QLoRA details, ablations (§6), limitations | Document the ML methodology and results to a professional standard |
+| `PROJECT_DEEP_DIVE.md` | This document — full architecture review + hardening changelog | Let a new engineer fully understand/maintain the system without extra docs |
+| `package.json` | npm manifest: dependencies (`next`, `react`, `react-dom`, `lucide-react`) and scripts (`dev`/`build`/`start`/`lint`) | Define the frontend project, its deps, and how to run it |
+| `package-lock.json` | Exact, resolved version of every npm dependency (transitive included) | Reproducible installs — same dependency tree on every machine/CI |
+| `next.config.js` | Next.js configuration (currently just an empty `images.remotePatterns`) | Central place for framework-level config |
+| `tailwind.config.js` | Tailwind setup: content globs, the teal **`brand`** color palette, Inter font family | Define the design system tokens and tell Tailwind which files to scan |
+| `postcss.config.js` | PostCSS pipeline registering `tailwindcss` + `autoprefixer` | Compile Tailwind directives and add vendor prefixes at build time |
+| `tsconfig.json` | TypeScript compiler options: `strict`, path alias `@/* → ./*`, **excludes `huggingface/`** | Type-safety config; the alias powers `@/lib/...` imports; excludes the Python backend |
+| `.env.example` | Template documenting the one required env var, `HF_SPACE_URL` (server-only) | Show what to put in `.env.local` without committing secrets |
+| `.gitignore` | Ignore `node_modules`, `.next`, env files, Python caches, HF cache, IDE files | Keep build output, secrets, and local cruft out of git |
+
+#### `app/` — Next.js App Router (routes + pages)
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `app/layout.tsx` | Root layout: loads Inter font, sets page `<metadata>`, wraps every page with the `Navbar` + `Footer` shell, imports `globals.css` | The HTML skeleton shared by all pages |
+| `app/page.tsx` | The landing route `/` — composes `Hero` + `Workflow` + `Disclaimer` | Marketing/intro page |
+| `app/globals.css` | Tailwind layer imports + global resets (smooth scroll, body defaults, focus ring) | App-wide base styling |
+| `app/dashboard/page.tsx` | ⭐ The real app at `/dashboard`: client component handling file select/drag-drop, **client-side validation** (JPG/PNG, ≤10 MB), preview, calling `analyzeImage()`, `loading`/`warmingUp` UX, and rendering results | The actual product UI — upload → analyze → see report |
+| `app/api/analyze/route.ts` | ⭐⭐ Server-side `POST` proxy: file → base64 data-URI → Gradio 2-step API → parse SSE → remap snake_case→camelCase | Bridge browser ↔ HF backend; hide the URL, dodge CORS, reshape data |
+
+#### `components/` — Presentational React components
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `components/Navbar.tsx` | Fixed top nav: logo, links, smooth-scroll anchors, mobile hamburger, Dashboard CTA | Site-wide navigation |
+| `components/Hero.tsx` | Full-height landing hero: headline + "Try the Dashboard"/"How it works" CTAs | First visual impression on the landing page |
+| `components/Workflow.tsx` | "How It Works" — three step cards (Upload → AI Analyzes → Get a Report) | Explain the flow to visitors |
+| `components/Disclaimer.tsx` | Amber callout: educational-use disclaimer + the list of 7 supported lesion classes | Set expectations / medico-legal safety framing |
+| `components/Footer.tsx` | Minimal footer: brand, Home/Dashboard/GitHub links, copyright | Site-wide footer |
+| `components/ReportDisplay.tsx` | ⭐ Renders an `AnalysisResult`: classification + **severity badge**, confidence bar, top-3 list, report paragraphs, reset button | Turn the backend's JSON into the results UI (the only API-coupled component) |
+
+#### `lib/` — Shared frontend logic
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `lib/api.ts` | ⭐ `analyzeImage(file)` (builds `FormData`, calls `/api/analyze`, throws on error) + the TypeScript **data contract** (`AnalysisResult`, `TopPrediction`, `AnalysisError`) | Single typed client for the backend; defines the shape both proxy and UI agree on |
+
+#### `huggingface/` — the AI backend (separate deploy target)
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `huggingface/app.py` | ⭐⭐⭐ The Gradio app and entire 3-stage pipeline: EfficientNet-B0 (TTA) → FAISS RAG → Qwen report, with fact-correction + template fallback | The whole inference backend in one module |
+| `huggingface/eval.py` | Offline script: loads `best_model.pth` + `test_split.csv`, recomputes accuracy/F1/confusion matrix | Reproduce the reported metrics (not imported by `app.py`) |
+| `huggingface/Dockerfile` | Container build: `python:3.10-slim`, CPU-only torch, gradio, non-root user, expose 7860, `CMD python app.py` | Define the HuggingFace Space runtime image |
+| `huggingface/requirements.txt` | Python deps: `sentence-transformers`, `faiss-cpu`, `Pillow`, `numpy`, `huggingface_hub[inference]` (torch + gradio installed in the Dockerfile) | Declare backend dependencies |
+| `huggingface/README.md` | HF Space front-matter (`sdk: docker`, title, emoji, license) | Configure how HuggingFace builds/displays the Space |
+
+#### `huggingface/models/` — model artifacts (read-only at runtime)
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `models/best_model.pth` | EfficientNet-B0 fine-tuned weights (~16 MB) | The image classifier — **used** by `app.py` |
+| `models/faiss_index.bin` | FAISS index, 53 vectors × 384-dim (cosine) | Vector search for RAG — **used** |
+| `models/knowledge_base.json` | 53 curated medical chunks `{class, category, text}` | The RAG knowledge corpus — **used** |
+| `models/README.md` | Notes on which artifacts go here and how to export them from Kaggle | Onboarding doc for the models folder |
+| `models/lora_adapter/adapter_config.json` | PEFT/LoRA config (`r=16, α=32`, target modules) | Defines the QLoRA adapter — **not loaded at runtime (by design)** |
+| `models/lora_adapter/adapter_model.safetensors` | The trained LoRA weight deltas | The fine-tuned TinyLlama adapter (evidence of the fine-tuning work) |
+| `models/lora_adapter/tokenizer.json`, `tokenizer_config.json` | TinyLlama tokenizer + its config | Tokenization for the fine-tuned model (local-inference path) |
+| `models/lora_adapter/chat_template.jinja` | Jinja chat-prompt template for TinyLlama | Format prompts in the chat structure the model expects |
+| `models/lora_adapter/README.md` | Auto-generated PEFT model-card stub (mostly placeholders) | Created by `peft` on save; not authoritative — see root `MODEL_CARD.md` |
+
+#### `training/` — how the artifacts were built
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `training/dermwise_pipeline.ipynb` | The full Kaggle notebook: classifier training (2-stage), RAG index build, QLoRA fine-tune, end-to-end demo, artifact export | Make the actual ML work visible and reproducible |
+| `training/gradcam.py` | Hook-based Grad-CAM: one correctly-classified test image per class with an attention heatmap | Explainability — prove the model attends to the lesion, not artifacts |
+| `training/README.md` | Explains the notebook's 4 phases and how to run `eval.py` / `gradcam.py` | Guide for the training folder |
+
+#### `docs/assets/` — report figures
+
+| File | What it does | Purpose / main goal |
+|---|---|---|
+| `docs/assets/confusion_matrix.png` | Validation + test confusion matrices (TTA) | Visual evidence of per-class performance in README/model card |
+| `docs/assets/make_confusion_matrix.py` | Renders that PNG from the recorded test/val counts | Reproducible figure generation |
+| `docs/assets/gradcam_examples.png` | 7-panel Grad-CAM heatmap grid | The explainability figure embedded in the README |
+
 ---
 
 ## 4. Backend Architecture Deep Dive
