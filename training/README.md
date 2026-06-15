@@ -37,6 +37,19 @@ You do not need to re-run the notebook to verify the classifier metrics. With `b
 saved `test_split.csv`, and the HAM10000 images, run
 [`../huggingface/eval.py`](../huggingface/eval.py) — see [`../MODEL_CARD.md`](../MODEL_CARD.md) §5.
 
+## Explainability (Grad-CAM)
+
+[`gradcam.py`](gradcam.py) renders a grid of Grad-CAM heatmaps (one correctly-classified test image
+per class) to confirm the model attends to the lesion, not to artifacts. Run it on Kaggle (where the
+model + images live), then download the output and commit it to `docs/assets/gradcam_examples.png`:
+
+```bash
+python gradcam.py   # uses /kaggle/working + /kaggle/input defaults; see --help for overrides
+```
+
+It is hook-based (no extra dependencies) and uses the same `best_model.pth` and `test_split.csv` as
+the evaluation.
+
 ## Notes
 
 - The notebook targets the Kaggle environment (paths under `/kaggle/input`, GPU + bitsandbytes for
