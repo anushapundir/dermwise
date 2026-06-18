@@ -13,6 +13,9 @@ export interface TopPrediction {
   probability: number;
 }
 
+/** Which model generates the clinical report. */
+export type ReportModel = "qwen" | "tinyllama";
+
 export interface AnalysisResult {
   /** The predicted lesion class (e.g. "Melanoma (MEL)") */
   predictedClass: string;
@@ -24,6 +27,8 @@ export interface AnalysisResult {
   report: string;
   /** Retrieved knowledge context used for report generation */
   retrievedContext?: string;
+  /** Which model actually produced the report (may differ on fallback) */
+  modelUsed?: string;
 }
 
 export interface AnalysisError {
@@ -37,9 +42,13 @@ export interface AnalysisError {
  * Send an image to the backend for analysis.
  * Goes through /api/analyze (Next.js route handler) which proxies to HF Space.
  */
-export async function analyzeImage(file: File): Promise<AnalysisResult> {
+export async function analyzeImage(
+  file: File,
+  model: ReportModel = "qwen"
+): Promise<AnalysisResult> {
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("model", model);
 
   const res = await fetch("/api/analyze", {
     method: "POST",

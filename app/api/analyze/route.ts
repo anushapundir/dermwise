@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     // ── Read the uploaded file from formData ──
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    // Which report model to use: "qwen" (default, hosted) or "tinyllama" (fine-tuned, local).
+    const model = (formData.get("model") as string) === "tinyllama" ? "tinyllama" : "qwen";
 
     if (!file) {
       return NextResponse.json(
@@ -43,11 +45,11 @@ export async function POST(req: NextRequest) {
 
     // ── Step 1: Initiate the prediction ──
     // Gradio 5.x uses the function name as the endpoint (/analyze)
-    // Image input requires {url: dataUri} format
+    // Image input requires {url: dataUri} format; 2nd arg is the model toggle
     const callRes = await fetch(`${HF_SPACE_URL}/gradio_api/call/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: [{ url: dataUri }] }),
+      body: JSON.stringify({ data: [{ url: dataUri }, model] }),
     });
 
     if (!callRes.ok) {
@@ -152,6 +154,7 @@ export async function POST(req: NextRequest) {
       ),
       report: result.report || "",
       retrievedContext: result.retrieved_context || "",
+      modelUsed: result.model_used || model,
     });
   } catch (err) {
     console.error("[/api/analyze] Error:", err);

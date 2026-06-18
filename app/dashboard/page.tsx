@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { Upload, ImageIcon, Trash2, FileWarning, Loader2 } from "lucide-react";
-import { analyzeImage, type AnalysisResult } from "@/lib/api";
+import { analyzeImage, type AnalysisResult, type ReportModel } from "@/lib/api";
 import ReportDisplay from "@/components/ReportDisplay";
 
 /** Accepted MIME types */
@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [warmingUp, setWarmingUp] = useState(false);
+  // Which model generates the report: "qwen" (hosted, fast) or "tinyllama" (fine-tuned, local)
+  const [model, setModel] = useState<ReportModel>("qwen");
 
   // ── Validation ──
   const validate = (f: File): string | null => {
@@ -96,7 +98,7 @@ export default function DashboardPage() {
     const warmupTimer = setTimeout(() => setWarmingUp(true), 8000);
 
     try {
-      const data = await analyzeImage(file);
+      const data = await analyzeImage(file, model);
       setResult(data);
     } catch (err) {
       setError(
@@ -207,6 +209,47 @@ export default function DashboardPage() {
             <span className="ml-auto whitespace-nowrap text-xs text-brand-600">
               {(file.size / 1024).toFixed(0)} KB
             </span>
+          </div>
+        )}
+
+        {/* ── Report model toggle ── */}
+        {file && !error && !result && (
+          <div className="mt-5">
+            <p className="mb-2 text-xs font-medium text-slate-500">
+              Report model
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setModel("qwen")}
+                disabled={loading}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                  model === "qwen"
+                    ? "border-brand-500 bg-brand-50 text-brand-700"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                Qwen‑7B <span className="text-xs font-normal text-slate-400">· fast</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModel("tinyllama")}
+                disabled={loading}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                  model === "tinyllama"
+                    ? "border-brand-500 bg-brand-50 text-brand-700"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                TinyLlama <span className="text-xs font-normal text-slate-400">· fine‑tuned</span>
+              </button>
+            </div>
+            {model === "tinyllama" && (
+              <p className="mt-2 text-xs text-amber-600">
+                Runs the fine‑tuned QLoRA model on free CPU — the first request can
+                take 1–3 minutes.
+              </p>
+            )}
           </div>
         )}
 

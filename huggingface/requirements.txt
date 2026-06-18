@@ -3,3 +3,8 @@ faiss-cpu>=1.7.4
 Pillow>=10.0.0
 numpy>=1.24.0
 huggingface_hub[inference]>=0.20.0
+# For the optional local fine-tuned TinyLlama + QLoRA report model (CPU, fp32).
+# bitsandbytes is intentionally omitted — 4-bit needs a GPU; we run merged on CPU.
+transformers>=4.40.0
+peft>=0.10.0
+accelerate>=0.27.0

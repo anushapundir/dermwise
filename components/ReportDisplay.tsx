@@ -12,6 +12,13 @@ const SEVERITY_MAP: Record<string, { label: string; color: string }> = {
   vasc:  { label: "Benign",        color: "bg-green-100 text-green-800" },
 };
 
+/** Friendly labels for which model generated the report. */
+const MODEL_LABELS: Record<string, string> = {
+  qwen: "Qwen2.5-7B",
+  "qwen-fallback": "Qwen2.5-7B (fallback)",
+  tinyllama: "TinyLlama-1.1B · QLoRA",
+};
+
 /** Extract the short class code from a class name like "Melanoma (MEL)" → "mel" */
 function getClassCode(className: string): string {
   const match = className.match(/\((\w+)\)/);
@@ -122,6 +129,11 @@ export default function ReportDisplay({ result, onReset }: Props) {
         <div className="mb-4 flex items-center gap-2 text-slate-700">
           <FileText className="h-4 w-4" />
           <h4 className="text-sm font-semibold">Clinical Report</h4>
+          {result.modelUsed && (
+            <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500">
+              {MODEL_LABELS[result.modelUsed] ?? result.modelUsed}
+            </span>
+          )}
         </div>
         <div className="prose prose-sm max-w-none text-slate-600">
           {result.report.split("\n").map((line, i) =>

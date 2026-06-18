@@ -335,6 +335,89 @@ def _fallback_report(predicted_class, confidence, top_k, context):
 
 
 # ═══════════════════════════════════════════════════════════════
+# PHASE 3 (alt) — Local fine-tuned TinyLlama-1.1B + QLoRA adapter
+# ═══════════════════════════════════════════════════════════════
+# This is the model the user fine-tuned with QLoRA. It runs ON THE CPU SPACE
+# (no GPU, so we load the base model in fp32 and apply the LoRA adapter — the
+# 4-bit quantization used in training is a GPU-only feature). It is slower and
+# lower-quality than the hosted Qwen model, so it is opt-in via the UI toggle.
+# Loaded lazily on first use so it never slows startup or the Qwen path.
+
+LOCAL_BASE_MODEL = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+LOCAL_ADAPTER_DIR = os.path.join(MODEL_DIR, "lora_adapter")
+_local_llm = {"model": None, "tokenizer": None, "failed": False}
+
+
+def _load_local_llm():
+    """Lazily load TinyLlama base + the fine-tuned QLoRA adapter (CPU, fp32)."""
+    if _local_llm["model"] is not None or _local_llm["failed"]:
+        return _local_llm["model"], _local_llm["tokenizer"]
+    try:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from peft import PeftModel
+        logger.info("Loading local TinyLlama + QLoRA adapter (first use)...")
+        tokenizer = AutoTokenizer.from_pretrained(LOCAL_ADAPTER_DIR)
+        base = AutoModelForCausalLM.from_pretrained(
+            LOCAL_BASE_MODEL, torch_dtype=torch.float32, low_cpu_mem_usage=True
+        )
+        model = PeftModel.from_pretrained(base, LOCAL_ADAPTER_DIR)
+        model.to(DEVICE).eval()
+        _local_llm["model"], _local_llm["tokenizer"] = model, tokenizer
+        logger.info("Local TinyLlama ready")
+    except Exception as e:
+        logger.error(f"Local TinyLlama load failed: {e}")
+        logger.error(traceback.format_exc())
+        _local_llm["failed"] = True
+    return _local_llm["model"], _local_llm["tokenizer"]
+
+
+def generate_report_local(predicted_class, confidence, top_k, context):
+    """Generate a report with the fine-tuned TinyLlama (mirrors the training prompt)."""
+    model, tokenizer = _load_local_llm()
+    if model is None:
+        # Loading failed → fall back to the hosted Qwen path so the demo still works.
+        logger.warning("Local model unavailable — falling back to Qwen")
+        return generate_report(predicted_class, confidence, top_k, context), "qwen-fallback"
+
+    conf_pct = f"{confidence * 100:.1f}"
+    prompt = (
+        f"<|system|>\nYou are DermWise AI, a dermatology report generator.</s>\n"
+        f"<|user|>\nGenerate a dermatology report for a skin lesion classified as "
+        f"{predicted_class} with {conf_pct}% confidence.\n"
+        f"Medical context: {context[:400]}</s>\n"
+        f"<|assistant|>\n"
+    )
+    try:
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512).to(DEVICE)
+        with torch.no_grad():
+            output_ids = model.generate(
+                **inputs, max_new_tokens=512, temperature=0.2, do_sample=True,
+                top_p=0.85, top_k=30, repetition_penalty=1.2,
+                pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id,
+            )
+        report = tokenizer.decode(
+            output_ids[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+        ).strip()
+
+        # Trim hallucinated trailing sections the small model tends to add
+        for marker in ["<|user|>", "<|system|>", "METHODS:", "BACKGROUND:",
+                       "CONCLUSIONS:", "FUNDING", "TRIAL REGISTRATION"]:
+            idx = report.find(marker)
+            if idx > 0:
+                report = report[:idx].strip()
+
+        # Same safety fact-corrections as the Qwen path
+        for wrong, correct in MEDICAL_CORRECTIONS.items():
+            report = report.replace(wrong, correct)
+
+        return (report or _fallback_report(predicted_class, confidence, top_k, context)), "tinyllama"
+    except Exception as e:
+        logger.error(f"Local TinyLlama generation failed: {e}")
+        logger.error(traceback.format_exc())
+        return generate_report(predicted_class, confidence, top_k, context), "qwen-fallback"
+
+
+# ═══════════════════════════════════════════════════════════════
 # Load models at startup — classifier and RAG
 # ═══════════════════════════════════════════════════════════════
 
@@ -355,7 +438,7 @@ except Exception as e:
     logger.error(f"RAG failed: {e}")
     faiss_index, knowledge_base, sentence_embedder = None, [], None
 
-logger.info("Phase 3: Report generation via HF Inference API (no local model needed)")
+logger.info("Phase 3: Qwen via HF Inference API (default); local TinyLlama+QLoRA loads on demand")
 logger.info("Startup complete — Gradio app ready")
 logger.info("=" * 50)
 
@@ -364,12 +447,13 @@ logger.info("=" * 50)
 # Gradio interface
 # ═══════════════════════════════════════════════════════════════
 
-def analyze(image: Image.Image):
+def analyze(image: Image.Image, model_choice: str = "qwen"):
     """
     Full end-to-end pipeline:
     1. Classify with TTA
     2. Retrieve relevant medical context
-    3. Generate clinical report via HF Inference API
+    3. Generate clinical report — either the hosted Qwen-7B (default, fast) or the
+       fine-tuned local TinyLlama-1.1B+QLoRA (opt-in via model_choice="tinyllama").
     Returns a dict matching the frontend's expected format.
     """
     if image is None:
@@ -377,6 +461,9 @@ def analyze(image: Image.Image):
 
     if classifier is None:
         return {"error": "Classifier model not loaded — check Space logs"}
+
+    # Normalize the toggle value (Gradio may pass labels/None)
+    choice = "tinyllama" if str(model_choice).strip().lower().startswith("tiny") else "qwen"
 
     try:
         # Ensure RGB
@@ -394,10 +481,14 @@ def analyze(image: Image.Image):
         context = retrieve_context(query, faiss_index, knowledge_base, sentence_embedder)
         logger.info("Context retrieved")
 
-        # Step 3: Generate report via HF Inference API
-        logger.info("Generating report via HF Inference API...")
-        report = generate_report(predicted_class, confidence, top_k, context)
-        logger.info("Report generated")
+        # Step 3: Generate report with the chosen model
+        logger.info(f"Generating report (model={choice})...")
+        if choice == "tinyllama":
+            report, model_used = generate_report_local(predicted_class, confidence, top_k, context)
+        else:
+            report = generate_report(predicted_class, confidence, top_k, context)
+            model_used = "qwen"
+        logger.info(f"Report generated (model_used={model_used})")
 
         return {
             "predicted_class": predicted_class,
@@ -405,6 +496,7 @@ def analyze(image: Image.Image):
             "top_k": top_k,
             "report": report,
             "retrieved_context": context,
+            "model_used": model_used,
         }
     except Exception as e:
         error_msg = f"Analysis failed: {str(e)}"
@@ -417,7 +509,14 @@ def analyze(image: Image.Image):
 # ── Gradio app ──
 demo = gr.Interface(
     fn=analyze,
-    inputs=gr.Image(type="pil", label="Dermoscopic Image"),
+    inputs=[
+        gr.Image(type="pil", label="Dermoscopic Image"),
+        gr.Radio(
+            choices=["qwen", "tinyllama"],
+            value="qwen",
+            label="Report model (qwen = hosted 7B, fast; tinyllama = fine-tuned 1.1B, local/slow)",
+        ),
+    ],
     outputs=gr.JSON(label="Analysis Result"),
     title="DermWise — AI Skin Lesion Analysis",
     description="Upload a dermoscopic image for classification and clinical report generation.",
