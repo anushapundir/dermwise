@@ -9,10 +9,11 @@
 > sections below have been updated to match the code as it stands today. Summary of what changed since
 > the first draft:
 >
-> - **TinyLlama vs. Qwen:** no longer a hidden contradiction — it is now an **explicit, intentional
->   design decision** (TinyLlama-1.1B was fine-tuned with QLoRA and shipped as evidence; the live demo
->   serves Qwen2.5-7B for quality on free CPU). Documented in [`README.md`](README.md) Phase 3 and
->   [`MODEL_CARD.md`](MODEL_CARD.md) §4.
+> - **TinyLlama vs. Qwen — now a UI toggle:** the report model is user-selectable. **Qwen2.5-7B** is
+>   the default (fast, hosted); the **fine-tuned TinyLlama-1.1B + QLoRA** runs **locally on the CPU
+>   Space** when toggled on (fp32, with auto-fallback to Qwen). So the fine-tuned model is served
+>   end-to-end on demand. Documented in [`README.md`](README.md) Phase 3 and
+>   [`MODEL_CARD.md`](MODEL_CARD.md) §§3–4.
 > - **"Report == ship":** the deployed classifier in `app.py` was aligned to the evaluated model —
 >   TTA 4th view `rotate-90 → both-flip`, head dropout `0.3 → 0.2`, and the RAG query is now
 >   L2-normalized for true cosine. The reported metrics therefore describe the live model exactly.
@@ -104,15 +105,15 @@ pipeline — with the whole thing runnable on free CPU-only hosting.
 3. `lib/api.ts` — the typed frontend API client and the data contract.
 4. The model artifacts under `huggingface/models/`.
 
-> **📌 Onboarding note — two models, by design (read this first):** Report generation has a
-> **trained** model and a **served** model, and they are deliberately different. TinyLlama-1.1B was
-> **fine-tuned with QLoRA** for this task (adapter shipped in `lora_adapter/`, training code in
-> [`training/`](training/)), but the live demo generates reports via the **HuggingFace Serverless
-> Inference API** with **`Qwen/Qwen2.5-7B-Instruct`** ([app.py:256-265](huggingface/app.py#L256-L265)).
-> The QLoRA adapter is **not loaded at runtime** — kept as evidence of the fine-tuning work and as a
-> path to fully local inference. This is an intentional quality/latency trade-off (a 7B instruct model
-> writes materially better reports than a 1.1B model on free CPU), documented in
-> [`README.md`](README.md) Phase 3 and [`MODEL_CARD.md`](MODEL_CARD.md) §4 — see also
+> **📌 Onboarding note — two report models behind a UI toggle (read this first):** The dashboard lets
+> the user pick the report model. **Default = `Qwen/Qwen2.5-7B-Instruct`** via the HuggingFace
+> Serverless Inference API (`generate_report()`, [app.py:246-298](huggingface/app.py#L246-L298)) —
+> fast and higher quality. **Opt-in = the fine-tuned `TinyLlama-1.1B + QLoRA`**, which is **loaded
+> locally on the CPU Space** on first use (`generate_report_local()` lazily loads the base model +
+> adapter via `peft`, fp32 — 4-bit is GPU-only) and **auto-falls back to Qwen** on any error. So the
+> fine-tuned model *is* served end-to-end on demand. Qwen is the default because a 7B instruct model
+> writes materially better reports than a 1.1B model on free CPU. Documented in
+> [`README.md`](README.md) Phase 3 and [`MODEL_CARD.md`](MODEL_CARD.md) §§3–4 — see also
 > [§11](#11-ai--ml--model-architecture) and [§16](#16-technical-decisions).
 
 ---
@@ -197,7 +198,7 @@ DREMWISE/
 │       ├── best_model.pth       # EfficientNet-B0 weights (~16 MB)
 │       ├── faiss_index.bin      # FAISS index (53 vectors × 384 dim)
 │       ├── knowledge_base.json  # 53 medical knowledge chunks
-│       └── lora_adapter/        # TinyLlama QLoRA adapter — fine-tuning evidence; not loaded at runtime (by design)
+│       └── lora_adapter/        # TinyLlama QLoRA adapter — loaded locally only when the UI "tinyllama" toggle is used
 │           ├── adapter_config.json, adapter_model.safetensors
 │           ├── tokenizer*.json, chat_template.jinja
 │
@@ -292,7 +293,7 @@ Every tracked file in the repo, what it does, and why it exists. Files are group
 | `models/faiss_index.bin` | FAISS index, 53 vectors × 384-dim (cosine) | Vector search for RAG — **used** |
 | `models/knowledge_base.json` | 53 curated medical chunks `{class, category, text}` | The RAG knowledge corpus — **used** |
 | `models/README.md` | Notes on which artifacts go here and how to export them from Kaggle | Onboarding doc for the models folder |
-| `models/lora_adapter/adapter_config.json` | PEFT/LoRA config (`r=16, α=32`, target modules) | Defines the QLoRA adapter — **not loaded at runtime (by design)** |
+| `models/lora_adapter/adapter_config.json` | PEFT/LoRA config (`r=16, α=32`, target modules) | Defines the QLoRA adapter — **loaded locally when the UI "tinyllama" toggle is selected** |
 | `models/lora_adapter/adapter_model.safetensors` | The trained LoRA weight deltas | The fine-tuned TinyLlama adapter (evidence of the fine-tuning work) |
 | `models/lora_adapter/tokenizer.json`, `tokenizer_config.json` | TinyLlama tokenizer + its config | Tokenization for the fine-tuned model (local-inference path) |
 | `models/lora_adapter/chat_template.jinja` | Jinja chat-prompt template for TinyLlama | Format prompts in the chat structure the model expects |
@@ -573,7 +574,7 @@ in this system is limited to **read-only model artifacts on disk**, loaded once 
 | `best_model.pth` | PyTorch state_dict | ~16 MB | EfficientNet-B0 weights | [app.py:96-99](huggingface/app.py#L96-L99) |
 | `faiss_index.bin` | FAISS binary index | ~81 KB | 53 vectors × 384-dim, vector search | [app.py:189-191](huggingface/app.py#L189-L191) |
 | `knowledge_base.json` | JSON array | ~24 KB | 53 medical chunks `{class, category, text}` | [app.py:182-185](huggingface/app.py#L182-L185) |
-| `lora_adapter/` | safetensors + config | ~50 MB | TinyLlama QLoRA adapter — fine-tuning evidence; **not loaded at runtime (by design)** | (not loaded) |
+| `lora_adapter/` | safetensors + config | ~50 MB | TinyLlama QLoRA adapter — **loaded locally on demand** when the UI "tinyllama" toggle is used | (lazy-loaded) |
 
 The **FAISS index is the closest thing to a "database"** — it is an in-process vector store, not a
 server. The knowledge base is a parallel array: FAISS returns integer indices, which are used to
@@ -706,34 +707,36 @@ graph TD
   so the LLM gets class-relevant medical facts.
 - **Output:** top-3 chunk texts joined with blank lines ([app.py:212-220](huggingface/app.py#L212-L220)).
 
-### Stage 3 — Report generation ([app.py:227-315](huggingface/app.py#L227-L315))
-- **Model:** **`Qwen/Qwen2.5-7B-Instruct`** via `huggingface_hub.InferenceClient.chat_completion`
-  ([app.py:256-265](huggingface/app.py#L256-L265)) — a **remote, hosted** model, *not* the local
-  TinyLlama LoRA.
-- **Prompting:** a fixed system prompt forcing 4 sections (Classification Summary, Clinical
-  Description, Risk Assessment, Recommended Actions) plus an educational-use disclaimer
-  ([app.py:231-237](huggingface/app.py#L231-L237)); the user prompt injects classification + top-k +
-  RAG context ([app.py:243-248](huggingface/app.py#L243-L248)).
-- **Decoding params:** `max_tokens=512, temperature=0.2, top_p=0.85` — low temperature for factual,
-  deterministic-ish medical text ([app.py:260-264](huggingface/app.py#L260-L264)).
-- **Guardrail (post-processing):** `MEDICAL_CORRECTIONS` does literal string replacement to scrub
-  dangerous factual errors (e.g. "melanoma is always benign" → "melanoma is a malignant condition")
-  ([app.py:70-76](huggingface/app.py#L70-L76), [app.py:270-271](huggingface/app.py#L270-L271)).
-- **Fallback:** if the Inference API throws, `_fallback_report()` produces a deterministic
-  template-based report with a hard-coded severity map
-  ([app.py:282-315](huggingface/app.py#L282-L315)).
+### Stage 3 — Report generation ([app.py:246-360](huggingface/app.py#L246-L360))
+The report model is **user-selectable via a UI toggle** (`analyze(image, model_choice)`):
 
-### TinyLlama (fine-tuned) vs. Qwen (served) — an intentional split
+- **Default — `Qwen/Qwen2.5-7B-Instruct`** via `huggingface_hub.InferenceClient.chat_completion`
+  (`generate_report()`) — a remote, hosted model. Fast and higher quality.
+- **Opt-in — fine-tuned `TinyLlama-1.1B + QLoRA`** (`generate_report_local()`) — loaded **locally on
+  the CPU Space** on first use (`_load_local_llm()` lazily loads the base model + adapter via `peft`,
+  fp32) and run with the training-time prompt format. Slower (~1–3 min on CPU); **auto-falls back to
+  Qwen** if loading or generation fails.
+- **Prompting (Qwen):** a fixed system prompt forcing 4 sections (Classification Summary, Clinical
+  Description, Risk Assessment, Recommended Actions) plus an educational-use disclaimer; the user
+  prompt injects classification + top-k + RAG context.
+- **Decoding (Qwen):** `max_tokens=512, temperature=0.2, top_p=0.85` — low temperature for factual,
+  deterministic-ish medical text.
+- **Guardrail (both):** `MEDICAL_CORRECTIONS` does literal string replacement to scrub dangerous
+  factual errors (e.g. "melanoma is always benign" → "melanoma is a malignant condition").
+- **Fallback chain:** TinyLlama error → Qwen; Qwen/API error → `_fallback_report()` deterministic
+  template. The response includes a `model_used` field so the UI shows which model produced the report.
+
+### TinyLlama (fine-tuned) ↔ Qwen (hosted) — switchable, Qwen default
 The repo ships a **QLoRA adapter** for `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
 ([adapter_config.json:6](huggingface/models/lora_adapter/adapter_config.json#L6)) with
 `r=16, lora_alpha=32, lora_dropout=0.05`, targeting all attention + MLP projections
-(`q/k/v/o_proj, gate/up/down_proj`) — a textbook QLoRA configuration. The fine-tuning was real (see
-[`training/`](training/)). **At runtime, `app.py` deliberately does not load the adapter** — it serves
-the remote Qwen2.5-7B model instead, because a 7B instruct model writes materially better structured
-medical reports than a 1.1B model on the free CPU tier, at zero hosting cost. This is documented as a
-quality/latency trade-off in [`README.md`](README.md) Phase 3 and [`MODEL_CARD.md`](MODEL_CARD.md) §4;
-the adapter is retained as fine-tuning evidence and a path to fully local inference. (The previously
-stale `route.ts` comment about TinyLlama loading lazily has been corrected.)
+(`q/k/v/o_proj, gate/up/down_proj`) — a textbook QLoRA configuration. The fine-tuning is real (see
+[`training/`](training/)) and the model **is served on demand** when the user picks "tinyllama" in the
+UI: `app.py` loads the base model + adapter on the CPU Space (fp32 — the training-time 4-bit is a
+GPU-only feature). **Qwen is the default** because a 7B instruct model writes materially better
+reports than a 1.1B model on free CPU, at zero hosting cost — keeping both behind a toggle lets users
+run and compare them. Documented in [`README.md`](README.md) Phase 3 and
+[`MODEL_CARD.md`](MODEL_CARD.md) §§3–4.
 
 ---
 
@@ -775,7 +778,7 @@ Concepts that **actually appear** in this codebase:
 | **Vector database / similarity search** | ✅ | FAISS in-process index [app.py:189-210](huggingface/app.py#L189-L210) |
 | **Prompt engineering** | ✅ | system/user templates [app.py:231-248](huggingface/app.py#L231-L248) |
 | **LLM inference via hosted API** | ✅ | `InferenceClient.chat_completion` [app.py:256](huggingface/app.py#L256) |
-| **QLoRA / PEFT fine-tuning** | ✅ trained (not served) | `adapter_config.json` + [`training/`](training/); served model is Qwen by design |
+| **QLoRA / PEFT fine-tuning** | ✅ trained + served on demand | `adapter_config.json` + [`training/`](training/); loaded locally via the UI toggle (`generate_report_local`), Qwen is the default |
 | **Output guardrails / fact correction** | ✅ | `MEDICAL_CORRECTIONS` [app.py:70-76](huggingface/app.py#L70-L76) |
 | **Graceful degradation / fallback** | ✅ | `_fallback_report` [app.py:282-315](huggingface/app.py#L282-L315) |
 | **Server-Sent Events (SSE) streaming** | ✅ | Gradio result stream [route.ts:76-115](app/api/analyze/route.ts#L76-L115) |
@@ -869,9 +872,9 @@ a single consumer GPU.
 linear layers (here `q/k/v/o_proj` + MLP projections), so the update is `ΔW = BA`. Only `A,B` train.
 **In this project:** `adapter_config.json` shows `r=16, alpha=32, dropout=0.05` over TinyLlama-1.1B;
 training in [`training/`](training/) reports ~12.6M trainable params (2.0% of the model).
-**It is intentionally not loaded at runtime** — the live demo serves Qwen2.5-7B for quality on free
-CPU (see [§11](#11-ai--ml--model-architecture)). The adapter is kept as fine-tuning evidence and a
-future local-inference path.
+**It is served on demand via the UI toggle** (`generate_report_local()` in `app.py` loads it locally
+on the CPU Space in fp32; Qwen is the default for quality on free CPU — see
+[§11](#11-ai--ml--model-architecture)).
 
 ### 14.7 Server-Sent Events (SSE)
 
@@ -949,7 +952,7 @@ stateDiagram-v2
 | **EfficientNet-B0** | Best accuracy-per-param on CPU | ~16 MB weights, fast | Lower ceiling than bigger nets | ResNet/ViT |
 | **TTA at inference** | Cheap robustness without retraining | More stable predictions | 4× CPU cost | Single pass; model ensemble |
 | **FAISS for 53 chunks** | Standard RAG tooling, future-proof | Scales if KB grows | Overkill now; alignment invariant with JSON | numpy cosine sim |
-| **Remote Qwen2.5-7B over local TinyLlama** | Free serverless API gives a much stronger model than a 1.1B running on CPU | Better reports, no local LLM memory/latency | External dependency; rate limits; network failure path (mitigated by template fallback) | Run TinyLlama LoRA locally (slower/weaker), OpenAI (paid) |
+| **Qwen-7B default + fine-tuned TinyLlama via toggle** | Default to the stronger hosted 7B for demo quality, but let users run the fine-tuned 1.1B locally and compare | Best-of-both: fast default, fine-tuned model still served on demand; great talking point | TinyLlama path is slow on CPU; adds `transformers`/`peft` to the image; two code paths to maintain | Serve only Qwen (hides the QLoRA work); serve only TinyLlama (slow, lower quality); OpenAI (paid) |
 | **No DB / no auth / no cache** | It's a stateless demo; privacy by not storing images | Simplicity; nothing to breach or migrate | No history, no caching wins, no rate limiting | Add Postgres/Redis/auth for productization |
 | **String-replace medical guardrail** | Cheap, deterministic safety net for the worst factual errors | Simple, predictable | Brittle: only catches exact phrases | LLM-based fact-checker; structured output validation |
 

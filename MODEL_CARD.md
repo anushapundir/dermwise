@@ -117,12 +117,17 @@ Offline metric reproduction: [`huggingface/eval.py`](huggingface/eval.py).
 - **Optimization:** 5 epochs, AdamW LR 2e-4, grad-accum 4 (effective batch 8), cosine schedule with
   warmup, grad-clip 1.0, fp16 autocast. Best adapter saved on lowest val loss.
 
-### What is actually served (and why)
-- The **live demo serves `Qwen/Qwen2.5-7B-Instruct`** via the HuggingFace Serverless Inference API
-  (`temperature=0.2, top_p=0.85, max_tokens=512`), **not** the local TinyLlama adapter.
-- **Rationale:** on the free CPU tier, a 7B instruction-tuned model produces materially better
-  structured medical reports than a 1.1B model, at zero hosting cost. The QLoRA adapter is retained
-  as evidence of the fine-tuning work and as a path to fully local inference.
+### What is served (and why) — both, via a UI toggle
+The dashboard lets the user choose the report model:
+- **Qwen2.5-7B-Instruct (default)** — via the HuggingFace Serverless Inference API
+  (`temperature=0.2, top_p=0.85, max_tokens=512`). Fast, higher quality.
+- **TinyLlama-1.1B + QLoRA (opt-in)** — the fine-tuned model, loaded **locally on the free CPU
+  Space** (base model + adapter via `peft`, fp32 — 4-bit needs a GPU, so it is not used at serving
+  time). Slower (~1–3 min) and more templated; if it fails to load or errors, the app
+  **auto-falls back to Qwen** so the demo never breaks.
+- **Rationale:** Qwen is the default because a 7B instruct model produces materially better reports
+  than a 1.1B model on free CPU, at zero cost; the toggle still lets users run and compare the
+  fine-tuned model end-to-end.
 
 ### Guardrails
 - Post-generation **fact corrections** (string replacement) fix known dangerous errors (e.g. AK
@@ -140,11 +145,11 @@ same 4-view TTA (original, h-flip, v-flip, both-flip). The deployed RAG also sco
 cosine similarity (L2-normalized query against the normalized FAISS index). So **the reported test
 metrics describe the live classification system exactly.**
 
-There is **one intentional difference**, by design (not a defect):
+The **report model is user-selectable** (UI toggle), so the fine-tuned model *is* served on demand:
 
-| Aspect | Trained / evaluated | Served in the live demo | Why |
+| Aspect | Trained / evaluated | Live demo | Notes |
 |---|---|---|---|
-| Report LLM | TinyLlama-1.1B + QLoRA (local) | Qwen2.5-7B-Instruct (HF Inference API) | A 7B instruct model writes materially better reports than a 1.1B model on the free CPU tier, at zero cost. The QLoRA adapter is retained as fine-tuning evidence and a local-inference path. |
+| Report LLM | TinyLlama-1.1B + QLoRA | **Both** — Qwen2.5-7B (default) or TinyLlama+QLoRA (opt-in) | Qwen is default for quality/speed on free CPU; TinyLlama runs locally (fp32, no 4-bit) when toggled, with auto-fallback to Qwen. The classifier/RAG are identical to the evaluated pipeline regardless of model. |
 
 A minor, deliberate simplification: the deployed retrieval derives its query from the predicted
 class (`"{class} skin lesion dermoscopy"`) and does not replicate the notebook's optional

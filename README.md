@@ -102,23 +102,25 @@ graph LR
 
 ### Phase 3 — Clinical report generation
 
-> **Design note — TinyLlama (fine-tuned) vs. Qwen (served), read this:**
-> TinyLlama-1.1B-Chat was **fine-tuned with QLoRA** for clinical report generation, and the trained
-> adapter ships in [`huggingface/models/lora_adapter/`](huggingface/models/lora_adapter/) (training
-> code in [`/training`](training/)). **The live demo, however, generates reports via the HuggingFace
-> Serverless Inference API using `Qwen/Qwen2.5-7B-Instruct`.**
+> **Two report models, switchable from the UI:**
+> The dashboard has a **toggle** to choose which model writes the report:
+> - **Qwen2.5-7B-Instruct (default)** — served via the HuggingFace Serverless Inference API. Fast and
+>   high quality; the best experience for a demo.
+> - **TinyLlama-1.1B + QLoRA (fine-tuned)** — the model fine-tuned for this project (adapter in
+>   [`huggingface/models/lora_adapter/`](huggingface/models/lora_adapter/), training code in
+>   [`/training`](training/)). It runs **locally on the free CPU Space** (base model + adapter merged
+>   in fp32 — 4-bit is GPU-only), so it's slower (~1–3 min) and more templated, but it shows the
+>   fine-tuned model end-to-end. If it fails or is unavailable, the app **auto-falls back to Qwen**.
 >
-> This was a deliberate **quality/latency trade-off**: a 7B instruction-tuned model produces
-> materially better structured medical reports than a 1.1B model running on the free CPU tier, at
-> zero hosting cost. The QLoRA adapter is retained as (a) evidence of the fine-tuning work and
-> (b) a ready path to fully local inference. See `generate_report()` in
-> [`huggingface/app.py`](huggingface/app.py).
+> Why Qwen is the default: a 7B instruction-tuned model produces materially better structured medical
+> reports than a 1.1B model on free CPU, at zero hosting cost. Keeping both behind a toggle lets you
+> *use* the fine-tuned model and *compare* the two — a deliberate quality/latency trade-off.
 
-- **Served model:** `Qwen/Qwen2.5-7B-Instruct` (`max_tokens=512, temperature=0.2, top_p=0.85`)
-- **Fine-tuned model (shipped, not served):** TinyLlama-1.1B + QLoRA (4-bit, r=16, α=32)
+- **Default model:** `Qwen/Qwen2.5-7B-Instruct` (`max_tokens=512, temperature=0.2, top_p=0.85`)
+- **Fine-tuned model (opt-in via toggle):** TinyLlama-1.1B + QLoRA (trained 4-bit r=16 α=32; served fp32 on CPU)
 - **Guardrail:** a post-generation fact-correction pass scrubs known dangerous misstatements
-  (e.g. "melanoma is always benign")
-- **Fallback:** if the Inference API is unavailable, a deterministic template-based report is returned
+  (e.g. "melanoma is always benign") — applied to both models
+- **Fallback:** TinyLlama errors → Qwen; Qwen/API errors → deterministic template report
 - **Output sections:** Classification Summary · Clinical Description · Risk Assessment · Recommended Actions
 
 ---
@@ -253,7 +255,7 @@ DREMWISE/
 | **Backend** | Gradio (on FastAPI/Uvicorn), Docker | Expose the pipeline as a web API |
 | **Vision** | PyTorch, torchvision, EfficientNet-B0 | Image classification + TTA |
 | **Retrieval** | FAISS, sentence-transformers (MiniLM) | RAG knowledge retrieval |
-| **LLM** | Qwen2.5-7B-Instruct (served) · TinyLlama-1.1B + QLoRA (fine-tuned) | Clinical report generation |
+| **LLM** | Qwen2.5-7B-Instruct (default) · TinyLlama-1.1B + QLoRA (fine-tuned, toggle) | Clinical report generation (UI-switchable) |
 | **Deployment** | Vercel (frontend) · HuggingFace Spaces (backend) | Free hosting |
 
 ---
